@@ -11,7 +11,8 @@ if [[ -f "${SCRIPT_DIR}/load_conda.sh" ]]; then
 fi
 
 if [[ -x "${HOME}/bin/micromamba" ]]; then
-  export MAMBA_ROOT_PREFIX="${HOME}/micromamba"
+  # shellcheck disable=SC1091
+  source "${SCRIPT_DIR}/cluster_paths.sh"
   eval "$("${HOME}/bin/micromamba" shell hook -s bash -r "${MAMBA_ROOT_PREFIX}")"
   micromamba activate "${ENV_NAME}"
   return 0 2>/dev/null || exit 0

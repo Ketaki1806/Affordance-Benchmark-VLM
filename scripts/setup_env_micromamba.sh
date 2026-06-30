@@ -8,7 +8,6 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_NAME="affordance_benchmark"
 MAMBA_BIN="${HOME}/bin/micromamba"
-MAMBA_ROOT="${HOME}/micromamba"
 
 cd "${PROJECT_ROOT}"
 
@@ -17,8 +16,9 @@ if [[ ! -x "${MAMBA_BIN}" ]]; then
   exit 1
 fi
 
-export MAMBA_ROOT_PREFIX="${MAMBA_ROOT}"
-eval "$("${MAMBA_BIN}" shell hook -s bash -r "${MAMBA_ROOT}")"
+# shellcheck disable=SC1091
+source "${PROJECT_ROOT}/scripts/cluster_paths.sh"
+eval "$("${MAMBA_BIN}" shell hook -s bash -r "${MAMBA_ROOT_PREFIX}")"
 
 if micromamba env list | awk '{print $1}' | grep -qx "${ENV_NAME}"; then
   echo "Removing broken/partial environment: ${ENV_NAME}"
@@ -30,7 +30,7 @@ micromamba create -y -n "${ENV_NAME}" -f environment.yml
 micromamba activate "${ENV_NAME}"
 
 echo "Installing GPU PyTorch and dependencies via pip"
-pip install -r "${PROJECT_ROOT}/requirements-gpu.txt"
+pip install --no-cache-dir -r "${PROJECT_ROOT}/requirements-gpu.txt"
 
 echo "Environment ready."
 python --version
@@ -39,7 +39,7 @@ python -c "import transformers; print('transformers', transformers.__version__)"
 
 echo ""
 echo "Next steps (each new SSH session):"
-echo "  export MAMBA_ROOT_PREFIX=~/micromamba"
-echo "  eval \"\$(~/bin/micromamba shell hook -s bash -r ~/micromamba)\""
+echo "  source scripts/cluster_paths.sh"
+echo "  eval \"\$(~/bin/micromamba shell hook -s bash -r \${MAMBA_ROOT_PREFIX})\""
 echo "  micromamba activate ${ENV_NAME}"
 echo "  sbatch scripts/submit_gpu_job.slurm"

@@ -14,9 +14,9 @@ cd "${PROJECT_ROOT}"
 source "${PROJECT_ROOT}/scripts/activate_env.sh"
 
 export PYTHONPATH="${PROJECT_ROOT}/src"
-export HF_HOME="${PROJECT_ROOT}/artifacts/huggingface_cache"
-export TRANSFORMERS_CACHE="${HF_HOME}/transformers"
 
+# shellcheck disable=SC1091
+source "${PROJECT_ROOT}/scripts/cluster_paths.sh"
 mkdir -p "${PROJECT_ROOT}/artifacts/logs" "${HF_HOME}"
 
 echo "Project root: ${PROJECT_ROOT}"
