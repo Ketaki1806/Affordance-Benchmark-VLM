@@ -10,11 +10,8 @@ ENV_NAME="affordance_benchmark"
 
 cd "${PROJECT_ROOT}"
 
-if command -v conda >/dev/null 2>&1; then
-  # shellcheck disable=SC1091
-  source "$(conda info --base)/etc/profile.d/conda.sh"
-  conda activate "${ENV_NAME}"
-fi
+# shellcheck disable=SC1091
+source "${PROJECT_ROOT}/scripts/activate_env.sh"
 
 export PYTHONPATH="${PROJECT_ROOT}/src"
 export HF_HOME="${PROJECT_ROOT}/artifacts/huggingface_cache"

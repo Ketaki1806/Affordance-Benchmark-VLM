@@ -24,19 +24,13 @@ echo "Node:        ${SLURMD_NODENAME:-$(hostname)}"
 echo "Project:     ${PROJECT_ROOT}"
 echo "Started at:  $(date)"
 
-# Load cluster modules if needed (uncomment and edit for your site):
+# Load cluster modules if needed (uncomment and edit for LST):
 # module purge
 # module load cuda/12.1
-# module load miniconda3
+# module load miniforge3
 
-if command -v conda >/dev/null 2>&1; then
-  # shellcheck disable=SC1091
-  source "$(conda info --base)/etc/profile.d/conda.sh"
-  conda activate "${ENV_NAME}"
-else
-  echo "ERROR: conda not found on compute node."
-  exit 1
-fi
+# shellcheck disable=SC1091
+source "${PROJECT_ROOT}/scripts/activate_env.sh"
 
 nvidia-smi || true
 

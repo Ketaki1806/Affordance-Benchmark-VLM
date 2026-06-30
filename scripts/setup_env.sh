@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Create or update the conda environment from environment.yml.
+# Create or update the conda environment from environment.yml + pip GPU packages.
 # Usage (from project root):
 #   bash scripts/setup_env.sh
 
@@ -10,13 +10,8 @@ ENV_NAME="affordance_benchmark"
 
 cd "${PROJECT_ROOT}"
 
-if command -v conda >/dev/null 2>&1; then
-  # shellcheck disable=SC1091
-  source "$(conda info --base)/etc/profile.d/conda.sh"
-else
-  echo "ERROR: conda not found. Install Miniconda/Anaconda or load the conda module on your cluster."
-  exit 1
-fi
+# shellcheck disable=SC1091
+source "${PROJECT_ROOT}/scripts/load_conda.sh"
 
 if conda env list | awk '{print $1}' | grep -qx "${ENV_NAME}"; then
   echo "Updating existing environment: ${ENV_NAME}"
@@ -28,9 +23,12 @@ fi
 
 conda activate "${ENV_NAME}"
 
+echo "Installing GPU PyTorch and dependencies via pip"
+pip install -r "${PROJECT_ROOT}/requirements-gpu.txt"
+
 echo "Environment ready."
 python --version
-python -c "import torch; print('torch', torch.__version__)"
+python -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())"
 python -c "import transformers; print('transformers', transformers.__version__)"
 
 echo ""
