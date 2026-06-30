@@ -27,7 +27,6 @@ echo "Started at:  $(date)"
 # Load cluster modules if needed (uncomment and edit for LST):
 # module purge
 # module load cuda/12.1
-# module load miniforge3
 
 # shellcheck disable=SC1091
 source "${PROJECT_ROOT}/scripts/activate_env.sh"
