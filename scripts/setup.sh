@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
-# Create micromamba env and install GPU dependencies (LST / Linux).
-# Usage: bash scripts/setup.sh
+# Create micromamba env; install GPU deps (light step on login, heavy step via install_deps.sh).
+# Usage:
+#   bash scripts/setup.sh              # env only on login; run install_deps.sh after
+#   bash scripts/setup.sh --install    # also run pip install (may OOM on login node)
 
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_NAME="affordance_benchmark"
 MAMBA_BIN="${HOME}/bin/micromamba"
+DO_INSTALL=false
+
+if [[ "${1:-}" == "--install" ]]; then
+  DO_INSTALL=true
+fi
 
 cd "${PROJECT_ROOT}"
 
@@ -27,8 +34,27 @@ fi
 
 micromamba activate "${ENV_NAME}"
 
-echo "Installing GPU PyTorch and dependencies via pip..."
-pip install --no-cache-dir -r "${PROJECT_ROOT}/requirements-gpu.txt"
+if [[ "${DO_INSTALL}" == true ]]; then
+  echo ""
+  echo "WARNING: pip install on login nodes often gets OOM-killed (shows 'Killed')."
+  echo "If that happens, use: sbatch scripts/install_deps.slurm"
+  echo ""
+  bash "${PROJECT_ROOT}/scripts/install_deps.sh"
+else
+  echo ""
+  echo "Environment created. Install GPU packages next (pick one):"
+  echo ""
+  echo "  Recommended (compute node, avoids OOM):"
+  echo "    sbatch scripts/install_deps.slurm"
+  echo "    tail -f artifacts/logs/install-deps-<JOBID>.out"
+  echo ""
+  echo "  Or interactively on a node with enough RAM:"
+  echo "    bash scripts/install_deps.sh"
+  echo ""
+  echo "  Risky on login node (often killed):"
+  echo "    bash scripts/setup.sh --install"
+  exit 0
+fi
 
 echo ""
 echo "Environment ready."
@@ -39,6 +65,3 @@ python -c "import transformers; print('transformers', transformers.__version__)"
 echo ""
 echo "Each new SSH session:"
 echo "  source scripts/activate_env.sh"
-echo ""
-echo "Run on a GPU node:"
-echo "  sbatch scripts/submit_gpu_job.slurm"

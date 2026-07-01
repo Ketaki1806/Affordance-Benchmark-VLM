@@ -35,6 +35,8 @@ export TMUX_TMPDIR=~/tmp TMPDIR=~/tmp TEMP=~/tmp TMP=~/tmp
 tmux new -s setup
 bash scripts/install_micromamba.sh
 bash scripts/setup.sh
+sbatch scripts/install_deps.slurm
+tail -f artifacts/logs/install-deps-<JOBID>.out
 # Ctrl+B, D to detach
 ```
 
