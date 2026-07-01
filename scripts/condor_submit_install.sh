@@ -13,8 +13,8 @@
 # LST wiki: https://wiki.lst.uni-saarland.de/doku.php?id=user:cluster:a_condor
 #
 # Notes:
-#   - Do NOT use request_runtime on LST (nodes lack TARGET.runtime → no match).
-#   - Do NOT use request_disk (packages install to nethome, not worker scratch).
+#   - should_transfer_files = NO — nethome is NFS-visible on workers; do not sandbox-copy.
+#   - Do NOT use request_runtime (LST nodes lack TARGET.runtime).
 #   - No request_gpus (CPU/RAM job only).
 
 set -euo pipefail
@@ -35,11 +35,11 @@ output          = ${PROJECT_ROOT}/artifacts/logs/install-deps.\$(ClusterId).out
 error           = ${PROJECT_ROOT}/artifacts/logs/install-deps.\$(ClusterId).err
 log             = ${PROJECT_ROOT}/artifacts/logs/install-deps.\$(ClusterId).log
 
+getenv          = True
 request_cpus    = 2
 request_memory  = 16GB
 
-should_transfer_files   = YES
-when_to_transfer_output = ON_EXIT
+should_transfer_files = NO
 
 queue
 EOF
@@ -49,5 +49,4 @@ condor_submit "${SUB_FILE}"
 echo ""
 echo "Monitor:"
 echo "  condor_q kahadnurkar"
-echo "  condor_q kahadnurkar -better-analyze <ClusterId>"
 echo "  tail -f ${PROJECT_ROOT}/artifacts/logs/install-deps.<ClusterId>.out"
