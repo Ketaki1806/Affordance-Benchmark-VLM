@@ -18,8 +18,8 @@ log             = ${PROJECT_ROOT}/artifacts/logs/pipeline.\$(ClusterId).log
 
 request_cpus    = 4
 request_memory  = 48GB
+request_disk    = 10GB
 request_gpus    = 1
-request_runtime = 2 * 60 * 60
 
 should_transfer_files   = YES
 when_to_transfer_output = ON_EXIT
