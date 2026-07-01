@@ -36,23 +36,22 @@ micromamba activate "${ENV_NAME}"
 
 if [[ "${DO_INSTALL}" == true ]]; then
   echo ""
-  echo "WARNING: pip install on login nodes often gets OOM-killed (shows 'Killed')."
-  echo "If that happens, use: sbatch scripts/install_deps.slurm"
+  echo "WARNING: pip install of PyTorch on login nodes often gets OOM-killed."
+  echo "Use: bash scripts/install_deps.sh  (micromamba)"
+  echo "Or on submit node: bash scripts/condor_submit_install.sh"
   echo ""
   bash "${PROJECT_ROOT}/scripts/install_deps.sh"
 else
   echo ""
   echo "Environment created. Install GPU packages next (pick one):"
   echo ""
-  echo "  Recommended (compute node, avoids OOM):"
-  echo "    sbatch scripts/install_deps.slurm"
-  echo "    tail -f artifacts/logs/install-deps-<JOBID>.out"
+  echo "  On submit node (HTCondor, recommended):"
+  echo "    ssh submit"
+  echo "    bash scripts/condor_submit_install.sh"
+  echo "    condor_q"
   echo ""
-  echo "  Or interactively on a node with enough RAM:"
+  echo "  On login node (micromamba for PyTorch):"
   echo "    bash scripts/install_deps.sh"
-  echo ""
-  echo "  Risky on login node (often killed):"
-  echo "    bash scripts/setup.sh --install"
   exit 0
 fi
 

@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Install GPU pip packages — run on a compute node if login node OOM-kills pip.
+# Install GPU packages. PyTorch via micromamba (login-node safe); rest via pip.
 # Usage:
-#   bash scripts/install_deps.sh          # interactive (compute node or tmux)
-#   sbatch scripts/install_deps.slurm     # batch job
+#   bash scripts/install_deps.sh
+# On LST submit node (HTCondor):
+#   bash scripts/condor_submit_install.sh
 
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_NAME="affordance_benchmark"
 MAMBA_BIN="${HOME}/bin/micromamba"
-REQ_FILE="${PROJECT_ROOT}/requirements-gpu.txt"
 
 cd "${PROJECT_ROOT}"
 
@@ -26,17 +26,18 @@ micromamba activate "${ENV_NAME}"
 
 echo "Installing on: $(hostname)"
 echo "Started at:    $(date)"
-
-# Two-step install uses less peak RAM than resolving everything at once.
 echo ""
-echo "[1/2] Installing PyTorch (cu121)..."
-pip install --no-cache-dir \
-  --index-url https://download.pytorch.org/whl/cu121 \
-  --extra-index-url https://pypi.org/simple \
-  "torch==2.5.1"
+echo "NOTE: pip install of PyTorch OOM-kills on login nodes (shows 'Killed')."
+echo "      Using micromamba for PyTorch instead."
+echo ""
+
+echo "[1/2] Installing PyTorch + CUDA 12.1 via micromamba (may take 5–15 min)..."
+micromamba install -y \
+  pytorch pytorch-cuda=12.1 \
+  -c pytorch -c nvidia
 
 echo ""
-echo "[2/2] Installing transformers and dependencies..."
+echo "[2/2] Installing transformers and dependencies via pip..."
 pip install --no-cache-dir \
   "transformers>=4.46.0" \
   "accelerate>=0.34.0" \

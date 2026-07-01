@@ -20,40 +20,84 @@ conda activate affordance_benchmark
 .\scripts\run_pipeline.ps1
 ```
 
-## LST cluster setup
+## LST cluster (HTCondor)
 
-SSH in, clone the repo, then:
+The LST cluster uses **[HTCondor](https://wiki.lst.uni-saarland.de/doku.php?id=user:cluster:a_condor)**, not Slurm. There is no `sbatch` — use `condor_submit` on the **submit** node.
+
+| Node | Hostname | Purpose |
+|------|----------|---------|
+| Login | `login.lst.uni-saarland.de` | Edit files, light setup |
+| Submit | `ssh submit` | Submit HTCondor jobs |
+| Execute | (assigned by Condor) | Runs your job (GPU, more RAM) |
+
+### 1. Setup on login node
 
 ```bash
+ssh kahadnurkar@login.lst.uni-saarland.de
 cd ~/Affordance_Benchmark
 
-# Redirect temp/cache off the full login-node /tmp
 mkdir -p ~/tmp ~/.cache/pip
 export TMUX_TMPDIR=~/tmp TMPDIR=~/tmp TEMP=~/tmp TMP=~/tmp
 
-# Use tmux so install survives disconnect
 tmux new -s setup
 bash scripts/install_micromamba.sh
 bash scripts/setup.sh
-sbatch scripts/install_deps.slurm
-tail -f artifacts/logs/install-deps-<JOBID>.out
-# Ctrl+B, D to detach
+bash scripts/install_deps.sh    # micromamba for PyTorch; or use Condor step 2
 ```
 
-Each new session:
+### 2. Install deps on an execution node (recommended)
+
+```bash
+ssh submit
+cd ~/Affordance_Benchmark
+bash scripts/condor_submit_install.sh
+
+condor_q                          # your jobs
+tail -f artifacts/logs/install-deps.<ClusterId>.out
+```
+
+### 3. Run the pipeline on GPU
+
+```bash
+ssh submit
+cd ~/Affordance_Benchmark
+bash scripts/condor_submit_pipeline.sh
+
+condor_q
+tail -f artifacts/logs/pipeline.<ClusterId>.out
+```
+
+### Useful HTCondor commands (on submit node)
+
+```bash
+condor_q              # queue
+condor_q -better-analyze <ClusterId>   # why job is idle
+condor_rm <ClusterId> # cancel
+```
+
+### Each new SSH session
 
 ```bash
 cd ~/Affordance_Benchmark
 source scripts/activate_env.sh
 ```
 
-Submit a GPU job (from the submit node once Slurm is available):
+### Reset / wipe install artifacts
+
+Remove micromamba, caches, temp files, and broken `~/.bashrc` entries (keeps the repo):
 
 ```bash
-sbatch scripts/submit_gpu_job.slurm
+bash scripts/cluster_cleanup.sh --all
+```
+
+Also delete the project directory:
+
+```bash
+bash scripts/cluster_cleanup.sh --all --project
 ```
 
 ## Notes
 
-- On LST login nodes, always use `~/tmp` instead of `/tmp` (local disk is full).
-- Heavy work belongs on GPU compute nodes, not the login node.
+- Login node `/tmp` is on a full local disk — scripts use `~/tmp` on nethome.
+- Do not `pip install torch` on the login node (OOM → `Killed`). Use `bash scripts/install_deps.sh` (micromamba) or Condor.
+- Log into the [LST Condor wiki](https://wiki.lst.uni-saarland.de/doku.php?id=user:cluster:a_condor) for site-specific GPU requirements.

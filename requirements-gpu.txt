@@ -1,4 +1,5 @@
-# PyTorch cu121 must come from the PyTorch index first (not PyPI — PyPI pulls huge cu13 deps).
+# PyTorch is installed via micromamba on the cluster (see scripts/install_deps.sh).
+# pip-only install OOM-kills on memory-limited login nodes.
 --index-url https://download.pytorch.org/whl/cu121
 --extra-index-url https://pypi.org/simple
 torch==2.5.1
