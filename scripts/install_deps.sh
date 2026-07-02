@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install GPU packages. PyTorch via micromamba (login-node safe); rest via pip.
+# Install GPU packages. PyTorch via micromamba; pip fallback on execution nodes.
 # Usage:
 #   bash scripts/install_deps.sh
 # On LST submit node (HTCondor):
@@ -27,14 +27,30 @@ micromamba activate "${ENV_NAME}"
 echo "Installing on: $(hostname)"
 echo "Started at:    $(date)"
 echo ""
-echo "NOTE: pip install of PyTorch OOM-kills on login nodes (shows 'Killed')."
-echo "      Using micromamba for PyTorch instead."
-echo ""
 
-echo "[1/2] Installing PyTorch + CUDA 12.1 via micromamba (may take 5–15 min)..."
-micromamba install -y \
-  pytorch pytorch-cuda=12.1 \
-  -c pytorch -c nvidia
+install_pytorch_micromamba() {
+  echo "[1/2] Installing PyTorch + CUDA 12.1 via micromamba..."
+  micromamba install -y \
+    -c pytorch -c nvidia -c conda-forge \
+    --channel-priority flexible \
+    pytorch pytorch-cuda=12.1
+}
+
+install_pytorch_pip() {
+  echo "[1/2] Installing PyTorch + CUDA 12.1 via pip (fallback)..."
+  pip install --no-cache-dir \
+    --index-url https://download.pytorch.org/whl/cu121 \
+    --extra-index-url https://pypi.org/simple \
+    "torch==2.5.1"
+}
+
+if ! install_pytorch_micromamba; then
+  echo ""
+  echo "micromamba failed (often missing mkl/blas channels on worker nodes)."
+  echo "Trying pip instead — safe on HTCondor execution nodes with 16GB RAM."
+  echo ""
+  install_pytorch_pip
+fi
 
 echo ""
 echo "[2/2] Installing transformers and dependencies via pip..."
