@@ -25,8 +25,8 @@ error           = ${PROJECT_ROOT}/artifacts/logs/pipeline.\$(ClusterId).err
 log             = ${PROJECT_ROOT}/artifacts/logs/pipeline.\$(ClusterId).log
 
 getenv          = True
-request_cpus    = 4
-request_memory  = 48GB
+request_cpus    = 2
+request_memory  = 32GB
 request_gpus    = 1
 
 should_transfer_files = NO

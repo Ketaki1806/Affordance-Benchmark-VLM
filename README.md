@@ -67,6 +67,17 @@ condor_q
 tail -f artifacts/logs/pipeline.<ClusterId>.out
 ```
 
+### Check optimal HTCondor settings (submit node)
+
+```bash
+ssh submit
+cd ~/Affordance-Benchmark-VLM
+bash scripts/condor_check_resources.sh
+
+# Optional: submit a probe job and run condor_q -better-analyze
+bash scripts/condor_check_resources.sh --probe
+```
+
 ### Useful HTCondor commands (on submit node)
 
 ```bash
