@@ -26,7 +26,7 @@ log             = ${PROJECT_ROOT}/artifacts/logs/pipeline.\$(ClusterId).log
 
 getenv          = True
 request_cpus    = 2
-request_memory  = 32GB
+request_memory  = 24GB
 request_gpus    = 1
 
 should_transfer_files = NO
