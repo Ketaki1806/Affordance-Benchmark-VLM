@@ -1,7 +1,5 @@
 # Ignore data files (keep sample manifest template)
-data/**
-!data/sample/
-data/sample/*
+
 !data/sample/manifest.json
 !data/sample/.gitkeep
 artifacts/
