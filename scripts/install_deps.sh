@@ -53,13 +53,16 @@ if ! install_pytorch_micromamba; then
 fi
 
 echo ""
-echo "[2/2] Installing transformers and dependencies via pip..."
+echo "[2/2] Installing Python dependencies via pip (see requirements-gpu.txt)..."
 pip install --no-cache-dir \
   "transformers>=4.46.0" \
   "accelerate>=0.34.0" \
   "huggingface_hub>=0.26.0" \
   "sentencepiece>=0.2.0" \
-  "safetensors>=0.4.0"
+  "safetensors>=0.4.0" \
+  "pillow>=10.0.0" \
+  "pyyaml>=6.0" \
+  "qwen-vl-utils>=0.0.8"
 
 echo ""
 echo "Done at: $(date)"

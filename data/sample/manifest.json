@@ -1,0 +1,54 @@
+{
+  "images": [
+    {
+      "image_id": "sample_001",
+      "file": "bottle.png",
+      "object": "bottle with visible cap"
+    },
+    {
+      "image_id": "sample_002",
+      "file": "bowl.png",
+      "object": "glass bowl"
+    },
+    {
+      "image_id": "sample_003",
+      "file": "container with a lid.png",
+      "object": "container with lid"
+    },
+    {
+      "image_id": "sample_004",
+      "file": "drawer.png",
+      "object": "partially open drawer"
+    },
+    {
+      "image_id": "sample_005",
+      "file": "faucet.png",
+      "object": "wall-mounted faucet"
+    },
+    {
+      "image_id": "sample_006",
+      "file": "hammer.png",
+      "object": "claw hammer"
+    },
+    {
+      "image_id": "sample_007",
+      "file": "mug.png",
+      "object": "ceramic mug"
+    },
+    {
+      "image_id": "sample_008",
+      "file": "screw driver.png",
+      "object": "flathead screwdriver"
+    },
+    {
+      "image_id": "sample_009",
+      "file": "spatula.png",
+      "object": "slotted spatula"
+    },
+    {
+      "image_id": "sample_010",
+      "file": "teapot.png",
+      "object": "teapot with lid and handle"
+    }
+  ]
+}

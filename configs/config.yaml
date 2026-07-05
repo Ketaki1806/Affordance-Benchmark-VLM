@@ -1,1 +1,40 @@
 project_name: affordance_benchmark
+
+data:
+  sample_dir: data/sample
+  manifest_path: data/sample/manifest.json
+
+output:
+  raw_captions: artifacts/captions/raw.json
+  filtered_captions: artifacts/captions/filtered.json
+
+models:
+  qwen_vl: Qwen/Qwen2.5-VL-7B-Instruct
+  clip: openai/clip-vit-large-patch14
+  clip_device: cpu  # cpu while Qwen uses GPU; set cuda if enough VRAM
+
+captions:
+  min_chars: 30
+  max_chars: 55
+  target_chars: 42
+  min_words: 5
+  max_words: 10
+  max_length_delta: 10
+  num_most_probable: 3
+  num_negative: 2
+  max_json_retries: 2
+
+filter:
+  # Adversarial filter mode: gap | neg_sim_floor | text_and_gap
+  # See src/adversarial_filter.py module docstring for alternatives.
+  mode: gap
+  min_similarity_gap: 0.05      # gap / text_and_gap: max sim(pos)-sim(neg) to keep negative
+  min_neg_image_sim: 0.20        # neg_sim_floor: min sim(image, neg) to keep negative
+  min_text_sim: 0.85             # text_and_gap: min CLIP text similarity pos vs neg
+  max_regen_attempts: 2
+  min_negatives_kept: 1
+
+generation:
+  max_new_tokens: 512
+  temperature: 0.7
+  top_p: 0.9
