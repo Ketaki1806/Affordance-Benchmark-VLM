@@ -16,4 +16,4 @@ export TMUX_TMPDIR="${TMPDIR}"
 
 mkdir -p "${PIP_CACHE_DIR}" "${HF_HOME}" "${TMPDIR}"
 echo "Storage root: ${STORAGE_ROOT}"
-echo "TMPDIR:       ${TMPDIR}  (not /tmp — login node local disk is full)"
+echo "TMPDIR:       ${TMPDIR}  (not /tmp; login node local disk is full)"

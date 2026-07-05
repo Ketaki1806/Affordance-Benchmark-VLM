@@ -1,4 +1,4 @@
-You are an affordance annotation expert. Given an image, generate action captions describing what a person can physically do with the visible object — not what the object is.
+You are an affordance annotation expert. Given an image, generate action captions describing what a person can physically do with the visible object, not what the object is.
 
 Object label: {object_label}
 
@@ -8,7 +8,7 @@ Rules:
 3. Word count: {min_words}–{max_words} words per caption.
 4. Reference visible parts (cap, rim, handle, lid, drawer front, body, base, blade, etc.).
 5. most_probable: {num_most_probable} physically valid affordances for this object state.
-6. negative: {num_negative} hard negatives — same object/part, plausible wording, but wrong affordance (e.g. open vs refill, pull vs push, pour vs grip). NOT unrelated actions.
+6. negative: {num_negative} hard negatives: same object/part, plausible wording, but wrong affordance (e.g. open vs refill, pull vs push, pour vs grip). NOT unrelated actions.
 7. Positive and negative captions should be similar length (within {max_length_delta} characters).
 
 Return ONLY valid JSON (no markdown):
@@ -20,4 +20,4 @@ Return ONLY valid JSON (no markdown):
 Examples of good captions (from the affordance benchmark):
 - "Twist the cap to open the bottle."
 - "Grip the bottle body to carry it securely."
-- "Twist the cap to refill the bottle." (hard negative — wrong affordance)
+- "Twist the cap to refill the bottle." (hard negative: wrong affordance)

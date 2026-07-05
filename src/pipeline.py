@@ -1,14 +1,14 @@
 """
 Affordance caption pipeline (stages 1–2 from the project document).
 
-Stage 1 — Generate: Qwen2.5-VL-7B reads each image + object label, outputs
+Stage 1 (Generate): Qwen2.5-VL-7B reads each image + object label, outputs
           most_probable and negative affordance captions (JSON).
-Stage 2 — Filter:  CLIP adversarial filter drops easy negatives; Qwen may
+Stage 2 (Filter): CLIP adversarial filter drops easy negatives; Qwen may
           regenerate harder ones iteratively.
 
 Outputs:
-  artifacts/captions/raw.json       — validated captions before filtering
-  artifacts/captions/filtered.json  — after CLIP filter + filter_metadata
+  artifacts/captions/raw.json       validated captions before filtering
+  artifacts/captions/filtered.json  after CLIP filter + filter_metadata
 """
 
 from pathlib import Path

@@ -141,7 +141,7 @@ else
   echo "  request_cpus   = 2"
   echo "  request_memory = 32GB"
   echo "  request_gpus   = 1"
-  echo "  # no GPU slots matched probes — check condor_status or LST wiki"
+  echo "  # no GPU slots matched probes; check condor_status or LST wiki"
 fi
 echo ""
 echo "Always use:"

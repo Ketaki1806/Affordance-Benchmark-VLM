@@ -47,7 +47,7 @@ install_pytorch_pip() {
 if ! install_pytorch_micromamba; then
   echo ""
   echo "micromamba failed (often missing mkl/blas channels on worker nodes)."
-  echo "Trying pip instead — safe on HTCondor execution nodes with 16GB RAM."
+  echo "Trying pip instead (safe on HTCondor execution nodes with 16GB RAM)."
   echo ""
   install_pytorch_pip
 fi

@@ -2,15 +2,17 @@
 
 Physical affordance caption pipeline: **Qwen2.5-VL-7B** generates most-probable and hard-negative action captions; **CLIP** adversarial filtering removes easy negatives. Based on [Probing Physical Affordance Understanding](Probing%20Physical%20Affordance%20Understanding.pdf).
 
+Draft report notes and results log: [docs/project_notes.md](docs/project_notes.md) (update as experiments complete).
+
 ## Pipeline stages
 
-1. **Generate** — Qwen2.5-VL-7B reads each image + object label, outputs JSON captions
-2. **Validate** — enforce 30–55 chars (target 35–50), 5–10 words, affordance structure
-3. **Filter** — CLIP zero-shot drops easy negatives; regenerate hard negatives with Qwen if needed
+1. **Generate**: Qwen2.5-VL-7B reads each image + object label, outputs JSON captions
+2. **Validate**: enforce 30–55 chars (target 35–50), 5–10 words, affordance structure
+3. **Filter**: CLIP zero-shot drops easy negatives; regenerate hard negatives with Qwen if needed
 
 Outputs:
-- `artifacts/captions/raw.json` — before filtering
-- `artifacts/captions/filtered.json` — after CLIP filter + `filter_metadata`
+- `artifacts/captions/raw.json`: before filtering
+- `artifacts/captions/filtered.json`: after CLIP filter + `filter_metadata`
 
 ## Project layout
 
@@ -25,7 +27,7 @@ requirements-gpu.txt  # Python deps (PyTorch via micromamba on cluster)
 ## Sample data setup
 
 1. Place images in `data/sample/` and list them in `data/sample/manifest.json` (`file` + `object` label per row)
-2. The bundled pilot set uses 10 PNGs (`bottle.png`, `bowl.png`, …) — see the manifest for the full mapping
+2. The bundled pilot set uses 10 PNGs (`bottle.png`, `bowl.png`, …); see the manifest for the full mapping
 3. Run the pipeline (GPU required for Qwen-VL)
 
 Caption format (matches document examples):
@@ -95,9 +97,9 @@ bash scripts/cluster_cleanup.sh --all
 Use the same `manifest.json` schema with optional fields: `paco_category`, `part`, `attributes`, `source_split`.
 
 Sampling strategy:
-1. **Pilot (10–20)** — one image per diverse category (bottle, bowl, drawer, knife, …)
-2. **Medium (~200)** — stratified by PACO object category
-3. **Full** — LVIS images with clear part annotations and affordance-relevant attributes
+1. **Pilot (10–20)**: one image per diverse category (bottle, bowl, drawer, knife, …)
+2. **Medium (~200)**: stratified by PACO object category
+3. **Full**: LVIS images with clear part annotations and affordance-relevant attributes
 
 Point `data.manifest_path` in `configs/config.yaml` at the new manifest; no code changes needed.
 
@@ -134,6 +136,6 @@ filter:
 
 ## Notes
 
-- Login node `/tmp` is full — scripts use `~/tmp` on nethome
+- Login node `/tmp` is full; scripts use `~/tmp` on nethome
 - Do not use `request_runtime` in HTCondor submit files on LST
 - Use `should_transfer_files = NO` (nethome is shared across nodes)

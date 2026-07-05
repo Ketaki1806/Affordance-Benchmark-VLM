@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Submit dependency install to LST HTCondor (execution node — more RAM than login).
+# Submit dependency install to LST HTCondor (execution node, more RAM than login).
 #
 # Usage (on submit node):
 #   ssh submit
@@ -13,7 +13,7 @@
 # LST wiki: https://wiki.lst.uni-saarland.de/doku.php?id=user:cluster:a_condor
 #
 # Notes:
-#   - should_transfer_files = NO — nethome is NFS-visible on workers; do not sandbox-copy.
+#   - should_transfer_files = NO (nethome is NFS-visible on workers; do not sandbox-copy).
 #   - Do NOT use request_runtime (LST nodes lack TARGET.runtime).
 #   - No request_gpus (CPU/RAM job only).
 
