@@ -17,6 +17,9 @@ fi
 
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/cluster_paths.sh"
+
+# Micromamba MKL activate/deactivate hooks reference unset backup vars; bash -u aborts.
+set +u
 eval "$("${HOME}/bin/micromamba" shell hook -s bash -r "${MAMBA_ROOT_PREFIX}")"
 micromamba activate "${ENV_NAME}"
 return 0 2>/dev/null || exit 0

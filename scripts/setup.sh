@@ -25,6 +25,7 @@ if [[ ! -x "${MAMBA_BIN}" ]]; then
   exit 1
 fi
 
+set +u
 eval "$("${MAMBA_BIN}" shell hook -s bash -r "${MAMBA_ROOT_PREFIX}")"
 
 if ! micromamba env list | awk '{print $1}' | grep -qx "${ENV_NAME}"; then
@@ -32,7 +33,8 @@ if ! micromamba env list | awk '{print $1}' | grep -qx "${ENV_NAME}"; then
   micromamba create -y -n "${ENV_NAME}" -f environment.yml
 fi
 
-micromamba activate "${ENV_NAME}"
+# shellcheck disable=SC1091
+source "${PROJECT_ROOT}/scripts/activate_env.sh"
 
 if [[ "${DO_INSTALL}" == true ]]; then
   echo ""

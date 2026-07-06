@@ -21,8 +21,8 @@ if [[ ! -x "${MAMBA_BIN}" ]]; then
   exit 1
 fi
 
-eval "$("${MAMBA_BIN}" shell hook -s bash -r "${MAMBA_ROOT_PREFIX}")"
-micromamba activate "${ENV_NAME}"
+# shellcheck disable=SC1091
+source "${PROJECT_ROOT}/scripts/activate_env.sh"
 
 echo "Installing on: $(hostname)"
 echo "Started at:    $(date)"

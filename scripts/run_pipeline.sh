@@ -6,7 +6,6 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ENV_NAME="affordance_benchmark"
 
 cd "${PROJECT_ROOT}"
 
