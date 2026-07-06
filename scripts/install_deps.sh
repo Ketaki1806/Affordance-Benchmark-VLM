@@ -33,7 +33,7 @@ install_pytorch_micromamba() {
   micromamba install -y \
     -c pytorch -c nvidia -c conda-forge \
     --channel-priority flexible \
-    pytorch pytorch-cuda=12.1
+    pytorch torchvision pytorch-cuda=12.1
 }
 
 install_pytorch_pip() {
@@ -41,7 +41,8 @@ install_pytorch_pip() {
   pip install --no-cache-dir \
     --index-url https://download.pytorch.org/whl/cu121 \
     --extra-index-url https://pypi.org/simple \
-    "torch==2.5.1"
+    "torch==2.5.1" \
+    "torchvision==0.20.1"
 }
 
 if ! install_pytorch_micromamba; then
@@ -67,4 +68,6 @@ pip install --no-cache-dir \
 echo ""
 echo "Done at: $(date)"
 python -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())"
+python -c "import torchvision; print('torchvision', torchvision.__version__)"
 python -c "import transformers; print('transformers', transformers.__version__)"
+python -c "from PIL import Image; import yaml; import qwen_vl_utils; print('qwen_vl_utils ok')"

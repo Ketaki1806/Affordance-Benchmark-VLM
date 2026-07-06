@@ -1,12 +1,26 @@
-# PyTorch is installed via micromamba on the cluster (see scripts/install_deps.sh).
---index-url https://download.pytorch.org/whl/cu121
---extra-index-url https://pypi.org/simple
-torch==2.5.1
-transformers>=4.46.0
-accelerate>=0.34.0
-huggingface_hub>=0.26.0
-sentencepiece>=0.2.0
-safetensors>=0.4.0
-pillow>=10.0.0
-pyyaml>=6.0
-qwen-vl-utils>=0.0.8
+# PyTorch is installed via micromamba on the cluster (see scripts/install_deps.sh).
+
+--index-url https://download.pytorch.org/whl/cu121
+
+--extra-index-url https://pypi.org/simple
+
+torch==2.5.1
+
+torchvision==0.20.1
+
+transformers>=4.46.0
+
+accelerate>=0.34.0
+
+huggingface_hub>=0.26.0
+
+sentencepiece>=0.2.0
+
+safetensors>=0.4.0
+
+pillow>=10.0.0
+
+pyyaml>=6.0
+
+qwen-vl-utils>=0.0.8
+
