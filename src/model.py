@@ -26,14 +26,41 @@ class QwenVLCaptionModel:
         self.model = None
         self.processor = None
 
+    # Vision pixel limits for Qwen-VL model, because the GPU cannot process such high vision tokens
+    def _vision_pixel_limits(self) -> tuple[int, int]:
+        models_cfg = self.config["models"]
+        min_pixels = int(models_cfg.get("min_pixels", 256 * 28 * 28))
+        max_pixels = int(models_cfg.get("max_pixels", 1280 * 28 * 28))
+        return min_pixels, max_pixels
+
+    def _resolve_torch_dtype(self):
+        dtype_name = self.config["models"].get("qwen_dtype", "float16")
+        if dtype_name == "float32":
+            return torch.float32
+        if dtype_name == "bfloat16":
+            return torch.bfloat16
+        return torch.float16
+
     def load_model(self) -> None:
         logger.info("Loading Qwen-VL model: %s", self.model_name)
+        min_pixels, max_pixels = self._vision_pixel_limits()
+        dtype = self._resolve_torch_dtype()
+        logger.info(
+            "Qwen-VL settings: dtype=%s min_pixels=%d max_pixels=%d",
+            dtype,
+            min_pixels,
+            max_pixels,
+        )
         self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             self.model_name,
-            torch_dtype="auto",
+            torch_dtype=dtype,
             device_map="auto",
         )
-        self.processor = AutoProcessor.from_pretrained(self.model_name)
+        self.processor = AutoProcessor.from_pretrained(
+            self.model_name,
+            min_pixels=min_pixels,
+            max_pixels=max_pixels,
+        )
         logger.info("Qwen-VL model loaded")
 
     def is_loaded(self) -> bool:
@@ -52,11 +79,17 @@ class QwenVLCaptionModel:
 
     def _build_messages(self, image_path: str, prompt: str) -> list[dict]:
         """Chat format expected by Qwen2.5-VL: one user turn with image + text."""
+        min_pixels, max_pixels = self._vision_pixel_limits()
         return [
             {
                 "role": "user",
                 "content": [
-                    {"type": "image", "image": image_path},
+                    {
+                        "type": "image",
+                        "image": image_path,
+                        "min_pixels": min_pixels,
+                        "max_pixels": max_pixels,
+                    },
                     {"type": "text", "text": prompt},
                 ],
             }
