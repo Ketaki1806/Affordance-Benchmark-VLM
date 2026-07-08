@@ -41,14 +41,12 @@ This project targets those gaps from a complementary angle. Rather than predicti
 | Filter mode | `gap` (default) | `sim(pos) - sim(neg) < min_similarity_gap` |
 | Dataset (pilot) | 10 PNGs, PACO-style manifest | `data/sample/manifest.json` |
 
-### Stage 4 inference (planned)
+### Stage 4 inference (implemented)
 
-| Backend | Feasibility | Status |
-|---------|-------------|--------|
-| CLIP (baseline) | High | Not implemented yet |
-| Open-VLJEPA | Medium | Unofficial checkpoint; video-trained; closest VL-JEPA proxy |
-| V-JEPA 2 alone | Low | Vision only, no text branch |
-| I-JEPA | Very low | Vision only |
+| Backend | Module | Status |
+|---------|--------|--------|
+| CLIP (baseline) | `src/clip_scorer.py`, `src/evaluate.py` | Ready |
+| Open-VLJEPA | `src/open_vljepa_scorer.py`, `src/evaluate.py` | Ready (needs `setup_open_vljepa.sh`) |
 
 ### Fine-tuning plan (after frozen baseline)
 
@@ -81,13 +79,20 @@ Fill in after each experiment run. Copy numbers from `artifacts/eval/` when avai
 
 ### 4.1 Caption pipeline (pilot, N = 10)
 
+Pilot settings (see `configs/config.yaml`):
+
+- **1 positive + 1 negative** per image (`captions.num_most_probable` / `num_negative`)
+- CLIP **gap** filter with up to **4** regen attempts; **fallback** to best rejected negative if none pass
+- **25–55** character captions; Qwen retries when tiers come back empty
+- Stage 4 eval: **CLIP only** for pilot (`eval.backends: [clip]`)
+
 | Metric | Value | Date | Notes |
 |--------|-------|------|-------|
 | Images processed | TBD | | |
-| Avg positives kept per image | TBD | | |
-| Avg negatives after filter | TBD | | |
-| Regeneration attempts used | TBD | | |
-| Filter mode | `gap` | | |
+| Images with pos+neg pair | TBD | | target 10/10 via fallback |
+| Avg regen attempts | TBD | | from `pair_metadata.regen_attempts` |
+| Fallback selections (%) | TBD | | `selection: fallback_best_rejected` |
+| Filter mode | `gap` | | `min_similarity_gap: 0.08` |
 
 ### 4.2 Frozen CLIP inference
 

@@ -36,19 +36,24 @@ class CaptionGenerationPrompt:
     def build_regeneration_prompt(
         self,
         object_label: str,
-        rejected_negatives: list[str],
         positive_captions: list[str],
+        rejection_details: list[dict],
     ) -> str:
         """Follow-up prompt when CLIP filter rejects negatives as too easy."""
         caps = self.config["captions"]
         template = self._read_template(self.regen_template_path)
-        rejected_list = "\n".join(f"- {c}" for c in rejected_negatives)
         positive_list = "\n".join(f"- {c}" for c in positive_captions)
+        detail_lines = []
+        for item in rejection_details:
+            detail_lines.append(
+                f"- {item['negative']} | {item['reason']} | "
+                f"{item['sim_pos']} | {item['sim_neg']} | {item['gap']}"
+            )
+        rejection_block = "\n".join(detail_lines) if detail_lines else "- (none)"
         return template.format(
             object_label=object_label,
-            rejected_list=rejected_list,
             positive_list=positive_list,
-            num_negative=caps["num_negative"],
+            rejection_details=rejection_block,
             min_chars=caps["min_chars"],
             max_chars=caps["max_chars"],
             min_words=caps["min_words"],

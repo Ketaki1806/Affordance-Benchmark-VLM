@@ -1,7 +1,7 @@
 """
 Caption validation (stage 1c).
 
-Enforces document-style constraints: 30–55 characters, 5–10 words,
+Enforces document-style constraints: min/max chars and words from config,
 valid JSON structure. Does not check affordance correctness (that's Qwen + CLIP).
 """
 
@@ -77,8 +77,8 @@ class CaptionValidator:
         most_probable: list[str],
         negative: list[str],
     ) -> tuple[list[str], list[str]]:
-        pos = self.validate_tier(most_probable)
-        neg = self.validate_tier(negative)
+        pos = self.validate_tier(most_probable)[: self.caps["num_most_probable"]]
+        neg = self.validate_tier(negative)[: self.caps["num_negative"]]
         min_pos = self.caps["num_most_probable"]
         min_neg = self.config["filter"]["min_negatives_kept"]
         if len(pos) < min_pos:

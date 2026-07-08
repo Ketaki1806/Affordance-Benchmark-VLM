@@ -1,31 +1,10 @@
 """
 Adversarial filtering with CLIP zero-shot (stage 2 of the affordance pipeline).
 
-Goal: drop *easy* hard negatives that CLIP can trivially reject, and keep negatives
-that are semantically close to the image but affordance-wrong.
-
-Filter modes (set filter.mode in configs/config.yaml):
-  gap (default)
-      Keep negative if: sim(image, pos) - sim(image, neg) < min_similarity_gap
-      AND sim(image, neg) <= sim(image, pos).
-      Intuition: CLIP barely prefers the positive → negative is a hard distractor.
-
-  neg_sim_floor
-      Keep negative if: sim(image, neg) >= min_neg_image_sim
-      AND sim(image, neg) <= sim(image, pos).
-      Intuition: negative must be visually grounded in the image (not unrelated),
-      but still lose to the positive. Good when gap alone drops grounded captions.
-
-  text_and_gap
-      Same as gap, plus require high CLIP *text* similarity between pos and neg.
-      Intuition: hard negatives should use confusable affordance wording (same parts,
-      similar verbs) even before comparing to the image.
-
-Other methods used in literature (not implemented here):
-  - Human review loop after automatic pre-filter
-  - Round-trip LLM critique ("would a human pick the negative for this image?")
-  - VL-JEPA distance instead of CLIP (stage 4 in the project document)
-  - Pool ranking: negative must be in top-k CLIP scores among all candidate captions
+Pilot mode (filter.export_single_pair: true):
+  - One anchor positive (highest CLIP image similarity if several candidates).
+  - Regenerate until one hard negative passes the filter, or use the best rejected
+    fallback so filtered.json never ships an empty negative tier when avoidable.
 """
 
 from typing import Any
@@ -34,7 +13,7 @@ from caption_generation_prompt import CaptionGenerationPrompt
 from caption_validator import CaptionValidator
 from clip_scorer import CLIPScorer
 from config_loader import load_config
-from dataset_io import build_image_record
+from dataset_io import build_image_record, collapse_to_single_pair
 from logger import get_logger
 from model import QwenVLCaptionModel
 
@@ -56,7 +35,6 @@ class AdversarialFilter:
         self.qwen = qwen
         self.prompt_builder = prompt_builder or CaptionGenerationPrompt()
         self.filter_cfg = self.config["filter"]
-        # gap | neg_sim_floor | text_and_gap
         self.mode = self.filter_cfg.get("mode", "gap")
 
     def _should_keep_negative(
@@ -65,10 +43,7 @@ class AdversarialFilter:
         sim_neg: float,
         text_sim: float | None,
     ) -> bool:
-        """Apply the configured filter mode to decide if a negative is hard enough."""
         gap = sim_pos - sim_neg
-
-        # Always reject if CLIP prefers the wrong (negative) caption for this image.
         if sim_neg > sim_pos:
             return False
 
@@ -83,7 +58,6 @@ class AdversarialFilter:
                 return gap < max_gap
             return gap < max_gap and text_sim >= min_text
 
-        # Default: gap mode (same idea as rank margin: sim_neg > sim_pos - margin).
         return gap < self.filter_cfg["min_similarity_gap"]
 
     def _score_pair(
@@ -92,12 +66,10 @@ class AdversarialFilter:
         positive: str,
         negative: str,
     ) -> dict[str, Any]:
-        # Step 1: CLIP image–text cosine similarity for positive and negative.
         sim_pos = self.clip.score(image_path, positive)
         sim_neg = self.clip.score(image_path, negative)
         gap = sim_pos - sim_neg
 
-        # Step 2 (text_and_gap only): confusable wording in embedding space.
         text_sim: float | None = None
         if self.mode == "text_and_gap":
             text_sim = round(self.clip.score_text_pair(positive, negative), 4)
@@ -132,22 +104,57 @@ class AdversarialFilter:
             return "too_easy_large_gap"
         return "rejected"
 
+    def _select_anchor_positive(self, image_path: str, most_probable: list[str]) -> str:
+        if len(most_probable) == 1:
+            return most_probable[0]
+        best = most_probable[0]
+        best_sim = float("-inf")
+        for positive in most_probable:
+            sim = self.clip.score(image_path, positive)
+            if sim > best_sim:
+                best_sim = sim
+                best = positive
+        return best
+
+    def _pick_hardest_kept(self, metadata: list[dict[str, Any]]) -> dict[str, Any]:
+        kept = [m for m in metadata if m["kept"]]
+        if not kept:
+            raise ValueError("No kept negatives to pick from")
+        return min(kept, key=lambda m: m["gap"])
+
+    def _pick_fallback_negative(self, all_metadata: list[dict[str, Any]]) -> dict[str, Any] | None:
+        if not all_metadata:
+            return None
+        grounded = [m for m in all_metadata if m["sim_neg"] <= m["sim_pos"]]
+        pool = grounded if grounded else all_metadata
+        return min(pool, key=lambda m: (m["gap"], m["sim_neg"] - m["sim_pos"]))
+
+    def _export_record(
+        self,
+        entry: dict[str, Any],
+        positives: list[str],
+        negatives: list[str],
+        pair_meta: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        if self.filter_cfg.get("export_single_pair", True):
+            positives, negatives = collapse_to_single_pair(positives, negatives)
+        return build_image_record(entry, positives, negatives, pair_meta)
+
     def filter_negatives(
         self,
         image_path: str,
         most_probable: list[str],
         negatives: list[str],
-    ) -> tuple[list[str], list[dict[str, Any]]]:
+    ) -> tuple[list[str], list[dict[str, Any]], str]:
         if not most_probable:
-            return [], []
+            return [], [], ""
 
-        # Compare each negative against the first (anchor) positive caption.
-        anchor_positive = most_probable[0]
+        anchor = self._select_anchor_positive(image_path, most_probable)
         metadata: list[dict[str, Any]] = []
         kept_negatives: list[str] = []
 
         for negative in negatives:
-            result = self._score_pair(image_path, anchor_positive, negative)
+            result = self._score_pair(image_path, anchor, negative)
             metadata.append(result)
             if result["kept"]:
                 kept_negatives.append(negative)
@@ -158,7 +165,7 @@ class AdversarialFilter:
                     negative,
                 )
 
-        return kept_negatives, metadata
+        return kept_negatives, metadata, anchor
 
     def filter_with_regeneration(
         self,
@@ -167,47 +174,61 @@ class AdversarialFilter:
         negatives: list[str],
     ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         """
-        Filter negatives; if too few survive, ask Qwen-VL to regenerate harder ones.
-        Loop at most filter.max_regen_attempts times.
+        Filter negatives; regenerate harder ones until the pilot pair is filled.
+        Never returns an empty negative list when allow_fallback is true and any
+        candidate was scored.
         """
         image_path = entry["image_path"]
         object_label = entry["object"]
         all_metadata: list[dict[str, Any]] = []
         current_negatives = list(negatives)
+        anchor = ""
+        export_positives = most_probable
 
-        for attempt in range(self.filter_cfg["max_regen_attempts"] + 1):
-            kept, metadata = self.filter_negatives(
+        if not most_probable:
+            logger.warning("No positives for %s; skipping filter", entry["image_id"])
+            return self._export_record(entry, [], [], {"selection": "no_positive"}), all_metadata
+
+        max_regen = self.filter_cfg["max_regen_attempts"]
+        allow_fallback = self.filter_cfg.get("allow_fallback", True)
+
+        for attempt in range(max_regen + 1):
+            kept, metadata, anchor = self.filter_negatives(
                 image_path,
                 most_probable,
                 current_negatives,
             )
             all_metadata.extend(metadata)
+            export_positives = [anchor] if self.filter_cfg.get("export_single_pair", True) else most_probable
 
-            min_kept = self.filter_cfg["min_negatives_kept"]
-            if len(kept) >= min_kept:
-                return build_image_record(entry, most_probable, kept), all_metadata
-
-            if attempt >= self.filter_cfg["max_regen_attempts"]:
-                logger.warning(
-                    "Keeping %d negatives after max regen attempts for %s",
-                    len(kept),
-                    entry["image_id"],
+            if kept:
+                chosen_meta = self._pick_hardest_kept(metadata)
+                pair_meta = {
+                    "selection": "filter_kept",
+                    "anchor_positive": anchor,
+                    "regen_attempts": attempt,
+                    **chosen_meta,
+                }
+                return (
+                    self._export_record(entry, export_positives, [chosen_meta["negative"]], pair_meta),
+                    all_metadata,
                 )
-                return build_image_record(entry, most_probable, kept), all_metadata
+
+            if attempt >= max_regen:
+                break
 
             if self.qwen is None or not self.qwen.is_loaded():
                 logger.warning("Cannot regenerate negatives without Qwen model loaded")
-                return build_image_record(entry, most_probable, kept), all_metadata
+                break
 
-            # Tell Qwen which negatives were too easy so it can propose harder ones.
-            rejected = [m["negative"] for m in metadata if not m["kept"]]
-            if not rejected:
-                rejected = current_negatives
-
+            rejected_meta = metadata if metadata else [
+                {"negative": n, "reason": "not_scored", "sim_pos": 0, "sim_neg": 0, "gap": 0}
+                for n in current_negatives
+            ]
             regen_prompt = self.prompt_builder.build_regeneration_prompt(
                 object_label=object_label,
-                rejected_negatives=rejected,
-                positive_captions=most_probable,
+                positive_captions=[anchor],
+                rejection_details=rejected_meta,
             )
             logger.info(
                 "Regenerating negatives for %s (attempt %d)",
@@ -217,5 +238,38 @@ class AdversarialFilter:
             new_negatives = self.qwen.regenerate_negatives(image_path, regen_prompt)
             _, validated_neg = self.validator.validate_record(most_probable, new_negatives)
             current_negatives = validated_neg if validated_neg else new_negatives
+            if not current_negatives:
+                logger.warning("Regeneration returned no valid negatives for %s", entry["image_id"])
 
-        return build_image_record(entry, most_probable, kept), all_metadata
+        if allow_fallback:
+            fallback = self._pick_fallback_negative(all_metadata)
+            if fallback:
+                pair_meta = {
+                    "selection": "fallback_best_rejected",
+                    "anchor_positive": anchor or most_probable[0],
+                    "regen_attempts": max_regen,
+                    **fallback,
+                }
+                logger.warning(
+                    "Using fallback negative for %s (reason=%s, gap=%s)",
+                    entry["image_id"],
+                    fallback["reason"],
+                    fallback["gap"],
+                )
+                return (
+                    self._export_record(
+                        entry,
+                        export_positives or [most_probable[0]],
+                        [fallback["negative"]],
+                        pair_meta,
+                    ),
+                    all_metadata,
+                )
+
+        logger.warning("No negative kept for %s after filter + regen", entry["image_id"])
+        pair_meta = {
+            "selection": "empty",
+            "anchor_positive": anchor or most_probable[0],
+            "regen_attempts": max_regen,
+        }
+        return self._export_record(entry, export_positives or most_probable[:1], [], pair_meta), all_metadata

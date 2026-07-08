@@ -1,10 +1,7 @@
 """
 Affordance caption pipeline (stages 1–2 from the project document).
 
-Stage 1 (Generate): Qwen2.5-VL-7B reads each image + object label, outputs
-          most_probable and negative affordance captions (JSON).
-Stage 2 (Filter): CLIP adversarial filter drops easy negatives; Qwen may
-          regenerate harder ones iteratively.
+Pilot: one positive + one negative per image; CLIP filter with regen + fallback.
 
 Outputs:
   artifacts/captions/raw.json       validated captions before filtering
@@ -38,6 +35,53 @@ class AffordanceCaptionPipeline:
         filtered = resolve_path(self.config["output"]["filtered_captions"], PROJECT_ROOT)
         return raw, filtered
 
+    def _generate_validated_captions(
+        self,
+        entry: dict,
+        prompt: str,
+    ) -> tuple[list[str], list[str], dict]:
+        """Stage 1: Qwen generation with retries when tiers come back empty."""
+        image_path = entry["image_path"]
+        max_retries = self.config["captions"].get("max_generation_retries", 0)
+        last_raw: dict = {}
+
+        for attempt in range(max_retries + 1):
+            raw_data = self.qwen.generate_captions(image_path, prompt)
+            if not self.validator.validate_json_structure(raw_data):
+                raise ValueError(f"Invalid JSON structure for {entry['image_id']}")
+
+            most_probable, negatives = self.validator.validate_record(
+                raw_data.get("most_probable", []),
+                raw_data.get("negative", []),
+            )
+            last_raw = raw_data
+
+            if most_probable and negatives:
+                return most_probable, negatives, last_raw
+
+            if attempt < max_retries:
+                logger.warning(
+                    "Retrying caption generation for %s (empty tiers, attempt %d)",
+                    entry["image_id"],
+                    attempt + 1,
+                )
+                prompt = (
+                    prompt
+                    + "\n\nYou must return exactly one most_probable and one negative caption."
+                )
+            else:
+                logger.warning(
+                    "Generation finished with empty tiers for %s after %d attempts",
+                    entry["image_id"],
+                    max_retries + 1,
+                )
+
+        return (
+            self.validator.validate_tier(last_raw.get("most_probable", []))[:1],
+            self.validator.validate_tier(last_raw.get("negative", []))[:1],
+            last_raw,
+        )
+
     def _process_image(
         self,
         entry: dict,
@@ -51,24 +95,12 @@ class AffordanceCaptionPipeline:
                 "Add images under data/sample/ matching manifest.json."
             )
 
-        # --- Stage 1a: Build affordance prompt from object label ---
         prompt = self.prompt_builder.build_prompt(entry["object"])
         logger.info("Generating captions for %s (%s)", entry["image_id"], entry["object"])
 
-        # --- Stage 1b: Qwen-VL generates JSON captions from image + prompt ---
-        raw_data = self.qwen.generate_captions(image_path, prompt)
-        if not self.validator.validate_json_structure(raw_data):
-            raise ValueError(f"Invalid JSON structure for {entry['image_id']}")
-
-        # --- Stage 1c: Drop captions outside 30–55 chars / word limits ---
-        most_probable, negatives = self.validator.validate_record(
-            raw_data.get("most_probable", []),
-            raw_data.get("negative", []),
-        )
-
+        most_probable, negatives, _raw_data = self._generate_validated_captions(entry, prompt)
         raw_record = build_image_record(entry, most_probable, negatives)
 
-        # --- Stage 2: CLIP filter (+ optional Qwen regen for harder negatives) ---
         filtered_record, filter_metadata = adv_filter.filter_with_regeneration(
             entry,
             most_probable,
@@ -83,7 +115,6 @@ class AffordanceCaptionPipeline:
 
         raw_path, filtered_path = self._output_paths()
 
-        # Load both models; Qwen stays on GPU, CLIP on CPU (see config clip_device).
         logger.info("Loading Qwen-VL for caption generation")
         self.qwen.load_model()
 
@@ -107,12 +138,14 @@ class AffordanceCaptionPipeline:
                 raw_objects.append(raw_record)
                 filtered_objects.append(filtered_record)
                 all_filter_metadata[entry["image_id"]] = meta
+                pair_meta = filtered_record.get("pair_metadata", {})
                 logger.info(
-                    "Done %s: %d pos, %d neg -> %d neg after filter",
+                    "Done %s: %d pos, %d neg -> %d neg after filter (%s)",
                     entry["image_id"],
                     len(raw_record["affordance_tiers"]["most_probable"]),
                     len(raw_record["affordance_tiers"]["negative"]),
                     len(filtered_record["affordance_tiers"]["negative"]),
+                    pair_meta.get("selection", "unknown"),
                 )
         finally:
             self.qwen.unload()

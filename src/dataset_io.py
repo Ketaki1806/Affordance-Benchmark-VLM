@@ -35,7 +35,6 @@ def load_manifest(manifest_path: Path | str | None = None) -> list[dict[str, Any
                 "image_path": str(image_path),
                 "file": file_name,
                 "object": item["object"],
-                # Optional PACO-LVIS fields for future scaling:
                 "paco_category": item.get("paco_category"),
                 "part": item.get("part"),
                 "attributes": item.get("attributes"),
@@ -57,9 +56,10 @@ def build_image_record(
     entry: dict[str, Any],
     most_probable: list[str],
     negative: list[str],
+    pair_meta: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """One record in raw.json / filtered.json matching the project document shape."""
-    return {
+    record: dict[str, Any] = {
         "image_id": entry["image_id"],
         "image_path": entry["image_path"],
         "object": entry["object"],
@@ -68,3 +68,16 @@ def build_image_record(
             "negative": negative,
         },
     }
+    if pair_meta:
+        record["pair_metadata"] = pair_meta
+    return record
+
+
+def collapse_to_single_pair(
+    most_probable: list[str],
+    negative: list[str],
+) -> tuple[list[str], list[str]]:
+    """Pilot export: at most one positive and one negative caption."""
+    pos = [most_probable[0]] if most_probable else []
+    neg = [negative[0]] if negative else []
+    return pos, neg

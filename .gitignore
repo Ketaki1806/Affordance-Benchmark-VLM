@@ -3,6 +3,7 @@
 !data/sample/manifest.json
 !data/sample/.gitkeep
 artifacts/
+vendor/
 
 # Python
 __pycache__/

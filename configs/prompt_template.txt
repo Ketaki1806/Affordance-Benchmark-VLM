@@ -7,17 +7,16 @@ Rules:
 2. Length: {min_chars}–{max_chars} characters (target ~{target_chars}). Count includes spaces and punctuation.
 3. Word count: {min_words}–{max_words} words per caption.
 4. Reference visible parts (cap, rim, handle, lid, drawer front, body, base, blade, etc.).
-5. most_probable: {num_most_probable} physically valid affordances for this object state.
-6. negative: {num_negative} hard negatives: same object/part, plausible wording, but wrong affordance (e.g. open vs refill, pull vs push, pour vs grip). NOT unrelated actions.
-7. Positive and negative captions should be similar length (within {max_length_delta} characters).
+5. most_probable: exactly {num_most_probable} physically valid affordance for this object state.
+6. negative: exactly {num_negative} hard negative: same object/part, plausible wording, wrong affordance (e.g. open vs refill, pull vs push). NOT unrelated actions.
+7. Positive and negative must be similar length (within {max_length_delta} characters).
 
 Return ONLY valid JSON (no markdown):
 {{
-  "most_probable": ["caption1", "caption2", "caption3"],
-  "negative": ["caption1", "caption2"]
+  "most_probable": ["one valid affordance caption"],
+  "negative": ["one hard negative caption"]
 }}
 
-Examples of good captions (from the affordance benchmark):
-- "Twist the cap to open the bottle."
-- "Grip the bottle body to carry it securely."
-- "Twist the cap to refill the bottle." (hard negative: wrong affordance)
+Examples:
+- Positive: "Twist the cap to open the bottle."
+- Hard negative: "Twist the cap to refill the bottle."

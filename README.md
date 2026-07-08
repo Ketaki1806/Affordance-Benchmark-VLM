@@ -14,6 +14,28 @@ Outputs:
 - `artifacts/captions/raw.json`: before filtering
 - `artifacts/captions/filtered.json`: after CLIP filter + `filter_metadata`
 
+## Stage 4 evaluation (CLIP vs Open-VLJEPA)
+
+After the caption pipeline completes, compare frozen **CLIP** and **Open-VLJEPA** on `filtered.json`:
+
+```bash
+# One-time: clone repo + download checkpoint (needs HF access to Llama/Gemma)
+bash scripts/setup_open_vljepa.sh
+huggingface-cli login
+
+# Run locally or via HTCondor GPU job
+bash scripts/run_evaluate.sh
+# or on submit node:
+bash scripts/condor_submit_evaluate.sh
+```
+
+Outputs:
+- `artifacts/eval/clip.json`
+- `artifacts/eval/open_vljepa.json`
+- `artifacts/eval/summary.json`
+
+Set `models.open_vljepa.enabled: false` in `config.yaml` to run CLIP-only eval.
+
 ## Project layout
 
 ```
@@ -109,10 +131,12 @@ Edit [configs/config.yaml](configs/config.yaml):
 
 | Key | Default | Purpose |
 |-----|---------|---------|
-| `captions.min_chars` / `max_chars` | 30 / 55 | Caption length limits |
-| `captions.num_most_probable` | 3 | Positive captions per image |
-| `captions.num_negative` | 2 | Negative captions per image |
-| `filter.min_similarity_gap` | 0.05 | CLIP gap threshold for hard negatives |
+| `captions.min_chars` / `max_chars` | 25 / 55 | Caption length limits (pilot uses 25 min) |
+| `captions.num_most_probable` | 1 | Positive captions per image (pilot) |
+| `captions.num_negative` | 1 | Negative captions per image (pilot) |
+| `filter.min_similarity_gap` | 0.08 | CLIP gap threshold for hard negatives |
+| `filter.max_regen_attempts` | 4 | Qwen regen rounds when negatives are too easy |
+| `filter.allow_fallback` | true | Keep best rejected negative rather than empty tier |
 | `filter.mode` | `gap` | Adversarial filter strategy (see below) |
 | `models.clip_device` | `cpu` | CLIP on CPU while Qwen uses GPU |
 

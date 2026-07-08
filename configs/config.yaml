@@ -7,38 +7,53 @@ data:
 output:
   raw_captions: artifacts/captions/raw.json
   filtered_captions: artifacts/captions/filtered.json
+  eval_clip: artifacts/eval/clip.json
+  eval_vljepa: artifacts/eval/open_vljepa.json
+  eval_summary: artifacts/eval/summary.json
 
 models:
   qwen_vl: Qwen/Qwen2.5-VL-7B-Instruct
   clip: openai/clip-vit-large-patch14
-  clip_device: cpu  # cpu while Qwen uses GPU; set cuda if enough VRAM
-  # V100: use float16 and cap vision tokens (see Qwen2.5-VL docs).
-  qwen_dtype: float16  # float16 | float32 (float32 slower but safest on V100)
-  min_pixels: 200704    # 256 * 28 * 28
-  max_pixels: 1003520   # 1280 * 28 * 28
+  clip_device: cpu
+  qwen_dtype: float16
+  min_pixels: 200704
+  max_pixels: 1003520
+  open_vljepa:
+    enabled: false
+    repo_root: vendor/open-vljepa
+    checkpoint: artifacts/checkpoints/open-vljepa/best.pt
+    device: cuda
+    dtype: float16
+    retrieval_prompt: "Describe the image."
 
 captions:
-  min_chars: 30
+  # Pilot: one positive + one negative per image.
+  min_chars: 25
   max_chars: 55
-  target_chars: 42
+  target_chars: 38
   min_words: 5
   max_words: 10
   max_length_delta: 10
-  num_most_probable: 3
-  num_negative: 2
+  num_most_probable: 1
+  num_negative: 1
   max_json_retries: 2
+  max_generation_retries: 2
 
 filter:
-  # Adversarial filter mode: gap | neg_sim_floor | text_and_gap
-  # See src/adversarial_filter.py module docstring for alternatives.
   mode: gap
-  min_similarity_gap: 0.05      # gap / text_and_gap: max sim(pos)-sim(neg) to keep negative
-  min_neg_image_sim: 0.20        # neg_sim_floor: min sim(image, neg) to keep negative
-  min_text_sim: 0.85             # text_and_gap: min CLIP text similarity pos vs neg
-  max_regen_attempts: 2
+  min_similarity_gap: 0.08
+  min_neg_image_sim: 0.20
+  min_text_sim: 0.80
+  max_regen_attempts: 4
   min_negatives_kept: 1
+  export_single_pair: true
+  allow_fallback: true
 
 generation:
   max_new_tokens: 512
   temperature: 0.7
   top_p: 0.9
+
+eval:
+  backends:
+    - clip

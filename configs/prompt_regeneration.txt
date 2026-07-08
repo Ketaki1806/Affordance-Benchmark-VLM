@@ -1,20 +1,21 @@
-REGENERATION_TEMPLATE = """The following negative affordance captions were too easy for a vision model to distinguish from the image (semantically too distant or obviously wrong).
+The negative caption below was rejected by a CLIP adversarial filter. Generate ONE harder replacement.
 
 Object label: {object_label}
 
-Rejected negatives:
-{rejected_list}
-
-Generate {num_negative} NEW hard negative captions only.
-Rules:
-- {min_chars}–{max_chars} characters, {min_words}–{max_words} words each.
-- Same object/part as the image, plausible but WRONG affordance.
-- Must be harder: visually and semantically closer to valid actions than the rejected ones.
-- Similar length to these valid positives:
+Valid positive caption:
 {positive_list}
+
+Rejected attempts (caption | reason | sim_pos | sim_neg | gap):
+{rejection_details}
+
+Rules:
+- {min_chars}–{max_chars} characters, {min_words}–{max_words} words.
+- Same visible object/part as the image, plausible wording, but WRONG affordance.
+- Must be harder than rejected captions: closer wording to the positive, same length band.
+- If reason was clip_prefers_negative: use same verb/part as the positive but wrong action.
+- If reason was too_easy_large_gap: stay same object/part; make affordance more confusable.
 
 Return ONLY valid JSON:
 {{
-  "negative": ["caption1", "caption2"]
+  "negative": ["single hard negative caption"]
 }}
-"""
