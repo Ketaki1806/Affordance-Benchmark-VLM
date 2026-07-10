@@ -65,6 +65,7 @@ pip install --no-cache-dir \
   "pyyaml>=6.0" \
   "qwen-vl-utils>=0.0.8"
 
+
 echo ""
 echo "Done at: $(date)"
 python -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())"

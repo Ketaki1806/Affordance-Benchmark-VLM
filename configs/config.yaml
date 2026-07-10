@@ -27,7 +27,6 @@ models:
     retrieval_prompt: "Describe the image."
 
 captions:
-  # Pilot: one positive + one negative per image.
   min_chars: 25
   max_chars: 55
   target_chars: 38
@@ -38,16 +37,6 @@ captions:
   num_negative: 1
   max_json_retries: 2
   max_generation_retries: 2
-
-filter:
-  mode: gap
-  min_similarity_gap: 0.08
-  min_neg_image_sim: 0.20
-  min_text_sim: 0.80
-  max_regen_attempts: 4
-  min_negatives_kept: 1
-  export_single_pair: true
-  allow_fallback: true
 
 generation:
   max_new_tokens: 512

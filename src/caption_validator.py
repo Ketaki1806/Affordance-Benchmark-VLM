@@ -2,7 +2,7 @@
 Caption validation (stage 1c).
 
 Enforces document-style constraints: min/max chars and words from config,
-valid JSON structure. Does not check affordance correctness (that's Qwen + CLIP).
+valid JSON structure. Does not check affordance correctness (that's Qwen's job).
 """
 
 import json
@@ -80,7 +80,7 @@ class CaptionValidator:
         pos = self.validate_tier(most_probable)[: self.caps["num_most_probable"]]
         neg = self.validate_tier(negative)[: self.caps["num_negative"]]
         min_pos = self.caps["num_most_probable"]
-        min_neg = self.config["filter"]["min_negatives_kept"]
+        min_neg = self.caps["num_negative"]
         if len(pos) < min_pos:
             logger.warning("Only %d valid most_probable captions (want %d)", len(pos), min_pos)
         if len(neg) < min_neg:

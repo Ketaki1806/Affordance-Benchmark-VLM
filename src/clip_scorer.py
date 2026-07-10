@@ -1,5 +1,5 @@
 """
-CLIP zero-shot scorer for adversarial filtering.
+CLIP zero-shot scorer for stage 4 evaluation.
 
 Encodes image and text into a shared embedding space; higher cosine similarity
 means the caption is more compatible with the image (used in stage 2 filtering).

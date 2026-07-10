@@ -23,4 +23,3 @@ pillow>=10.0.0
 pyyaml>=6.0
 
 qwen-vl-utils>=0.0.8
-

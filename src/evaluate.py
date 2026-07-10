@@ -1,9 +1,8 @@
 """
-Stage 4 evaluation: frozen CLIP vs Open-VLJEPA on filtered affordance captions.
+Stage 4 evaluation: frozen CLIP vs Open-VLJEPA on affordance caption pairs.
 
-For each (most_probable, negative) pair, the backend with the higher cosine
-similarity (CLIP) or lower L2 distance (Open-VLJEPA, also reported as cosine)
-wins. Outputs per-pair results and aggregate metrics for the report.
+For each (most_probable, negative) pair, the backend with higher cosine
+similarity wins. Outputs per-pair results and aggregate metrics.
 """
 
 from __future__ import annotations
@@ -55,11 +54,7 @@ def _evaluate_pair(
 ) -> dict[str, Any]:
     pos_score = scorer.score(image_path, positive)
     neg_score = scorer.score(image_path, negative)
-    if backend == "open_vljepa":
-        # Higher cosine similarity = closer in embedding space.
-        chosen = "most_probable" if pos_score >= neg_score else "negative"
-    else:
-        chosen = "most_probable" if pos_score >= neg_score else "negative"
+    chosen = "most_probable" if pos_score >= neg_score else "negative"
     correct = chosen == "most_probable"
     gap = abs(pos_score - neg_score)
     return {
@@ -148,7 +143,7 @@ def run_evaluation(
     records = _load_filtered_captions(path)
 
     eval_cfg = cfg.get("eval", {})
-    selected = backends or eval_cfg.get("backends", ["clip"])
+    selected = list(backends or eval_cfg.get("backends", ["clip"]))
     output: dict[str, Any] = {
         "source": str(path),
         "num_images": len(records),

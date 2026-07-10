@@ -1,40 +1,44 @@
 # Affordance Benchmark
 
-Physical affordance caption pipeline: **Qwen2.5-VL-7B** generates most-probable and hard-negative action captions; **CLIP** adversarial filtering removes easy negatives. Based on [Probing Physical Affordance Understanding](Probing%20Physical%20Affordance%20Understanding.pdf).
+Physical affordance caption pipeline: **Qwen2.5-VL-7B** generates one positive and one hard-negative action caption per image; **CLIP** evaluates frozen zero-shot discrimination on those pairs. Based on [Probing Physical Affordance Understanding](Probing%20Physical%20Affordance%20Understanding.pdf).
 
 Draft report notes and results log: [docs/project_notes.md](docs/project_notes.md) (update as experiments complete).
 
 ## Pipeline stages
 
 1. **Generate**: Qwen2.5-VL-7B reads each image + object label, outputs JSON captions
-2. **Validate**: enforce 30–55 chars (target 35–50), 5–10 words, affordance structure
-3. **Filter**: CLIP zero-shot drops easy negatives; regenerate hard negatives with Qwen if needed
+2. **Validate**: enforce length/word limits from config
+3. **Save**: same validated pairs go to `raw.json` and `filtered.json`
 
 Outputs:
-- `artifacts/captions/raw.json`: before filtering
-- `artifacts/captions/filtered.json`: after CLIP filter + `filter_metadata`
+- `artifacts/captions/raw.json`
+- `artifacts/captions/filtered.json` (input to stage 4 eval)
 
-## Stage 4 evaluation (CLIP vs Open-VLJEPA)
+## Stage 4 evaluation (CLIP, optional Open-VLJEPA)
 
-After the caption pipeline completes, compare frozen **CLIP** and **Open-VLJEPA** on `filtered.json`:
+After the caption pipeline completes, run evaluation on `filtered.json`:
 
 ```bash
-# One-time: clone repo + download checkpoint (needs HF access to Llama/Gemma)
+# Optional: Open-VLJEPA only if enabled in config.yaml
 bash scripts/setup_open_vljepa.sh
 huggingface-cli login
 
-# Run locally or via HTCondor GPU job
 bash scripts/run_evaluate.sh
 # or on submit node:
 bash scripts/condor_submit_evaluate.sh
 ```
+
+| Backend | What it measures |
+|---------|------------------|
+| **CLIP** | Binary affordance choice (pos vs neg similarity) |
+| **Open-VLJEPA** | Same binary task with VL-JEPA embeddings (optional) |
 
 Outputs:
 - `artifacts/eval/clip.json`
 - `artifacts/eval/open_vljepa.json`
 - `artifacts/eval/summary.json`
 
-Set `models.open_vljepa.enabled: false` in `config.yaml` to run CLIP-only eval.
+Set `models.open_vljepa.enabled: false` in `config.yaml` to skip Open-VLJEPA.
 
 ## Project layout
 
@@ -134,29 +138,7 @@ Edit [configs/config.yaml](configs/config.yaml):
 | `captions.min_chars` / `max_chars` | 25 / 55 | Caption length limits (pilot uses 25 min) |
 | `captions.num_most_probable` | 1 | Positive captions per image (pilot) |
 | `captions.num_negative` | 1 | Negative captions per image (pilot) |
-| `filter.min_similarity_gap` | 0.08 | CLIP gap threshold for hard negatives |
-| `filter.max_regen_attempts` | 4 | Qwen regen rounds when negatives are too easy |
-| `filter.allow_fallback` | true | Keep best rejected negative rather than empty tier |
-| `filter.mode` | `gap` | Adversarial filter strategy (see below) |
-| `models.clip_device` | `cpu` | CLIP on CPU while Qwen uses GPU |
-
-### Adversarial filter modes (`filter.mode`)
-
-| Mode | Keep negative when… | Use when… |
-|------|---------------------|-----------|
-| **`gap`** (default) | `sim(pos) - sim(neg) < min_similarity_gap` and CLIP does not prefer neg | Standard; matches project document |
-| **`neg_sim_floor`** | `sim(neg) >= min_neg_image_sim` and CLIP does not prefer neg | Negatives were unrelated to image (too easy visually) |
-| **`text_and_gap`** | gap rule **and** CLIP text similarity(pos, neg) ≥ `min_text_sim` | Negatives must use confusable affordance wording |
-
-Other approaches (not implemented): human review, LLM critique loop, VL-JEPA distance (stage 4), pool top-k ranking among all candidates.
-
-Change mode in `configs/config.yaml`:
-```yaml
-filter:
-  mode: text_and_gap
-  min_similarity_gap: 0.05
-  min_text_sim: 0.85
-```
+| `models.clip_device` | `cpu` | CLIP on CPU during stage 4 eval |
 
 ## Notes
 

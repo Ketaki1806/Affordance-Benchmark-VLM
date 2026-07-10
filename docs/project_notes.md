@@ -57,6 +57,29 @@ This project targets those gaps from a complementary angle. Rather than predicti
 
 **Success criteria (held-out split):** binary accuracy up, confidence gap up on previously wrong pairs, attribute failures down.
 
+### Ablation studies (report Section 4 / 5)
+
+Caption and filter knobs are already config-driven (`configs/config.yaml`); rerun the pipeline + CLIP eval per setting. Keep one variable fixed per run.
+
+| Ablation | Config keys | Levels (suggested) | What it tests |
+|----------|-------------|-------------------|---------------|
+| **Caption length** | `captions.min_chars`, `max_chars`, `target_chars` | **Short:** 25–40 (target 32); **Medium (pilot):** 25–55 (target 38); **Long:** 30–55 (target 45) | Whether CLIP discrimination depends on caption verbosity; shorter captions may reduce length bias but drop part detail |
+| Pos/neg length match | `captions.max_length_delta` | 5 vs 10 vs 15 | Fairness of binary comparison when positives and negatives differ in length |
+| Filter strictness | `filter.min_similarity_gap` | 0.05, 0.08, 0.12 | Trade-off between harder negatives and empty/fallback tiers |
+| Filter mode | `filter.mode` | `gap`, `text_and_gap`, `neg_sim_floor` | Whether text similarity or image grounding changes retained negatives |
+| Regen budget | `filter.max_regen_attempts` | 0, 2, 4 | Cost vs quality of adversarial negatives |
+
+**Caption length ablation (recommended for pilot report):**
+
+1. Fix pilot setup (N=10, 1 pos + 1 neg, `filter.mode: gap`, CLIP-only eval).
+2. Regenerate captions for each length band (Qwen + validator enforce limits; prompts already use `{min_chars}` / `{max_chars}`).
+3. Re-run stage 4 CLIP eval on each `filtered.json`.
+4. Report per setting: binary accuracy, mean confidence gap, % fallback negatives, % captions dropped by validator, qualitative fluency notes.
+
+**Hypothesis:** Tighter length caps (25–40) increase lexical overlap between pos/neg and may lower CLIP accuracy or confidence gap; looser caps (30–55) add distinguishing detail but risk length bias (CLIP prefers longer text). `max_length_delta` should be held constant (e.g. 10) across length bands unless that is the variable under test.
+
+**Note:** Changing length limits requires a **full pipeline rerun**, not eval-only, because Qwen outputs and the adversarial filter scores change.
+
 ---
 
 ## 3. Failure attribution (for report Section 4 / 5)
@@ -94,7 +117,16 @@ Pilot settings (see `configs/config.yaml`):
 | Fallback selections (%) | TBD | | `selection: fallback_best_rejected` |
 | Filter mode | `gap` | | `min_similarity_gap: 0.08` |
 
-### 4.2 Frozen CLIP inference
+### 4.2 CIDEr (caption quality on filtered captions)
+
+| Metric | Value | Date | Notes |
+|--------|-------|------|-------|
+| Corpus positive CIDEr | TBD | | vs `reference_captions` in manifest |
+| Mean positive CIDEr | TBD | | |
+| Corpus negative CIDEr vs positive | TBD | | lexical hardness proxy |
+| Mean negative CIDEr vs positive | TBD | | higher = harder negative wording |
+
+### 4.3 Frozen CLIP inference
 
 | Metric | Value | Date | Notes |
 |--------|-------|------|-------|
@@ -104,7 +136,7 @@ Pilot settings (see `configs/config.yaml`):
 | Attribute failures (%) | TBD | | |
 | Fluency failures (%) | TBD | | |
 
-### 4.3 Frozen Open-VLJEPA inference
+### 4.4 Frozen Open-VLJEPA inference
 
 | Metric | Value | Date | Notes |
 |--------|-------|------|-------|
@@ -112,7 +144,7 @@ Pilot settings (see `configs/config.yaml`):
 | Mean confidence gap | TBD | | |
 | vs CLIP delta (accuracy) | TBD | | |
 
-### 4.4 After targeted contrastive fine-tune (if run)
+### 4.5 After targeted contrastive fine-tune (if run)
 
 | Metric | Frozen | Fine-tuned | Delta | Date |
 |--------|--------|------------|-------|------|
@@ -120,7 +152,7 @@ Pilot settings (see `configs/config.yaml`):
 | Mean confidence gap | TBD | TBD | TBD | |
 | Attribute failure rate | TBD | TBD | TBD | |
 
-### 4.5 Qualitative observations
+### 4.6 Qualitative observations
 
 - TBD: PCA clustering of image-caption pairs
 - TBD: Example wins and failures (image id, captions, model choice)
@@ -153,4 +185,5 @@ Captions follow `[Verb] the [visible part] to [purpose]` (30 to 55 characters). 
 
 | Date | Update |
 |------|--------|
+| 2026-07-08 | Added ablation study table; caption length limit as primary pipeline ablation |
 | 2026-06-30 | Initial notes: AffordanceCLIP positioning, pipeline decisions, empty results tables |
