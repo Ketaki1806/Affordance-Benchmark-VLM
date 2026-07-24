@@ -1,6 +1,9 @@
 project_name: affordance_benchmark
 
 data:
+  # Pilot sample images (custom PNGs). For PACO-LVIS pilot, switch to:
+  #   sample_dir: data/paco/images
+  #   manifest_path: data/paco/manifest_pilot.json
   sample_dir: data/sample
   manifest_path: data/sample/manifest.json
 

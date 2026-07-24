@@ -40,6 +40,16 @@ Outputs:
 
 Set `models.open_vljepa.enabled: false` in `config.yaml` to skip Open-VLJEPA.
 
+### Analyze CLIP results (local)
+
+```bash
+pip install matplotlib
+export PYTHONPATH=src   # or $env:PYTHONPATH="src" on PowerShell
+python src/analyze_clip_results.py
+```
+
+Prints a text summary, writes `artifacts/eval/clip_analysis.json`, and saves plots under `artifacts/eval/figures/` (PNG if matplotlib is installed, otherwise SVG).
+
 ## Project layout
 
 ```
@@ -118,16 +128,43 @@ source scripts/activate_env.sh
 bash scripts/cluster_cleanup.sh --all
 ```
 
-## PACO-LVIS scaling (future)
+## PACO-LVIS pilot (cluster)
 
-Use the same `manifest.json` schema with optional fields: `paco_category`, `part`, `attributes`, `source_split`.
+1. Download annotations (login node; `wget` may be missing — use `curl`):
 
-Sampling strategy:
-1. **Pilot (10–20)**: one image per diverse category (bottle, bowl, drawer, knife, …)
-2. **Medium (~200)**: stratified by PACO object category
-3. **Full**: LVIS images with clear part annotations and affordance-relevant attributes
+```bash
+mkdir -p data/paco/annotations data/paco/images
+cd data/paco/annotations
+curl -L -o paco_lvis_v1.zip https://dl.fbaipublicfiles.com/paco/annotations/paco_lvis_v1.zip
+unzip paco_lvis_v1.zip   # or: python -c "import zipfile; zipfile.ZipFile('paco_lvis_v1.zip').extractall('.')"
+```
 
-Point `data.manifest_path` in `configs/config.yaml` at the new manifest; no code changes needed.
+2. Point `--image-root` at COCO 2017 images (`val2017/` / `train2017/`). PACO-LVIS reuses those files.
+
+3. Build a 15–20 image pilot manifest (one image per category, prefers interaction parts like cap/handle/lid):
+
+```bash
+cd ~/Affordance-Benchmark-VLM
+source scripts/activate_env.sh
+bash scripts/build_paco_pilot_manifest.sh \
+  --ann data/paco/annotations/paco_lvis_v1_val.json \
+  --image-root /path/to/coco \
+  --n 20 \
+  --require-image \
+  --copy-images
+```
+
+4. Point `configs/config.yaml` at the pilot:
+
+```yaml
+data:
+  sample_dir: data/paco/images
+  manifest_path: data/paco/manifest_pilot.json
+```
+
+5. Submit the caption pipeline on the submit node, then human-review `artifacts/captions/raw.json` before CLIP eval.
+
+Manifest schema fields: `paco_category`, `part`, `attributes`, `source_split` (optional extras beyond `image_id` / `file` / `object`).
 
 ## Configuration
 
