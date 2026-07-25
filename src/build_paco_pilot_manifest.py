@@ -119,6 +119,7 @@ def _resolve_image_path(image_root: Path | None, file_name: str) -> Path | None:
     if direct.is_file():
         return direct
     # COCO/LVIS layout: train2017/ or val2017/
+    # PACO-LVIS val images often live under train2017 (LVIS ≠ COCO split).
     for split in ("val2017", "train2017", "test2017"):
         candidate = image_root / split / Path(file_name).name
         if candidate.is_file():
@@ -128,6 +129,56 @@ def _resolve_image_path(image_root: Path | None, file_name: str) -> Path | None:
     if bare.is_file():
         return bare
     return None
+
+
+def _download_coco_image(file_name: str, image_root: Path) -> Path | None:
+    """Fetch one COCO image; try val2017 then train2017 CDN paths."""
+    import urllib.error
+    import urllib.request
+
+    name = Path(file_name).name
+    existing = _resolve_image_path(image_root, name)
+    if existing is not None:
+        return existing
+
+    for split in ("val2017", "train2017"):
+        url = f"http://images.cocodataset.org/{split}/{name}"
+        dest_dir = image_root / split
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest = dest_dir / name
+        try:
+            print(f"  downloading {url}")
+            urllib.request.urlretrieve(url, dest)
+            if dest.is_file() and dest.stat().st_size > 1000:
+                return dest
+            dest.unlink(missing_ok=True)
+        except urllib.error.HTTPError as exc:
+            print(f"  skip {split}: HTTP {exc.code}")
+            dest.unlink(missing_ok=True)
+        except OSError as exc:
+            print(f"  skip {split}: {exc}")
+            dest.unlink(missing_ok=True)
+    return None
+
+
+def _diagnose_image_root(data: dict[str, Any], image_root: Path | None) -> None:
+    if image_root is None:
+        print("  (no --image-root; cannot check which files exist on disk)")
+        return
+    names = [Path(img["file_name"]).name for img in data["images"][:200]]
+    in_val = sum(1 for n in names if (image_root / "val2017" / n).is_file())
+    in_train = sum(1 for n in names if (image_root / "train2017" / n).is_file())
+    print(
+        f"  image check (first {len(names)} PACO files): "
+        f"{in_val} in val2017/, {in_train} in train2017/"
+    )
+    if in_val == 0 and in_train == 0:
+        sample = names[:3]
+        print(f"  example PACO file_name values: {sample}")
+        print(
+            "  Hint: PACO-LVIS val images are often under COCO train2017. "
+            "Use --download-missing to fetch only the pilot images."
+        )
 
 
 def _build_candidates(
@@ -282,6 +333,38 @@ def _manifest_entry(item: dict[str, Any], source_split: str) -> dict[str, Any]:
     return entry
 
 
+def ensure_images(
+    selected: list[dict[str, Any]],
+    image_root: Path,
+    download_missing: bool,
+) -> None:
+    """Resolve each selected image; optionally download missing COCO files."""
+    missing = 0
+    for item in selected:
+        resolved = item.get("resolved_path")
+        path = Path(resolved) if resolved else None
+        if path is None or not path.is_file():
+            path = _resolve_image_path(image_root, item["file"])
+        if (path is None or not path.is_file()) and download_missing:
+            path = _download_coco_image(item["file"], image_root)
+        if path is None or not path.is_file():
+            missing += 1
+            print(f"  MISSING image for {item['image_id']}: {item['file']}")
+            item["resolved_path"] = None
+            continue
+        item["resolved_path"] = str(path)
+        # Keep relative path under image_root when possible
+        try:
+            item["file"] = str(Path(path).relative_to(image_root))
+        except ValueError:
+            item["file"] = Path(path).name
+    if missing:
+        raise SystemExit(
+            f"{missing}/{len(selected)} images missing. "
+            "Re-run with --download-missing or add train2017 images."
+        )
+
+
 def copy_images(
     selected: list[dict[str, Any]],
     dest_dir: Path,
@@ -340,6 +423,14 @@ def parse_args() -> argparse.Namespace:
         help="Only keep candidates whose image file exists under --image-root",
     )
     p.add_argument(
+        "--download-missing",
+        action="store_true",
+        help=(
+            "After sampling, download missing pilot images from the COCO CDN "
+            "(tries val2017 then train2017). Needs --image-root."
+        ),
+    )
+    p.add_argument(
         "--copy-images",
         action="store_true",
         help="Copy selected images into --sample-dir and rewrite file paths",
@@ -374,6 +465,9 @@ def main() -> None:
         f"categories={len(data['categories'])}"
     )
 
+    if args.image_root is not None:
+        _diagnose_image_root(data, args.image_root)
+
     by_object = _build_candidates(
         data,
         image_root=args.image_root,
@@ -385,13 +479,22 @@ def main() -> None:
 
     selected = sample_pilot(by_object, args.categories, args.n, args.seed)
     if not selected:
+        _diagnose_image_root(data, args.image_root)
         raise SystemExit(
-            "No candidates found. Check --image-root / --require-image / --min-area."
+            "No candidates found. If you only have val2017/, drop --require-image "
+            "and use --download-missing (PACO val images are often in train2017)."
+        )
+
+    if args.download_missing or args.copy_images:
+        if args.image_root is None:
+            raise SystemExit("--download-missing / --copy-images need --image-root")
+        ensure_images(
+            selected,
+            image_root=args.image_root,
+            download_missing=args.download_missing,
         )
 
     if args.copy_images:
-        if args.image_root is None:
-            raise SystemExit("--copy-images needs --image-root")
         copy_images(selected, args.sample_dir)
         print(f"Copied images to {args.sample_dir}")
 
