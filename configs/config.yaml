@@ -35,8 +35,8 @@ captions:
   max_length_delta: 10
   num_most_probable: 1
   num_negative: 1
-  max_json_retries: 2
-  max_generation_retries: 2
+  max_json_retries: 3
+  max_generation_retries: 3
 
 generation:
   max_new_tokens: 512

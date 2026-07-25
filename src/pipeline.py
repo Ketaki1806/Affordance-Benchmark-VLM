@@ -38,21 +38,37 @@ class AffordanceCaptionPipeline:
         entry: dict,
         prompt: str,
     ) -> tuple[list[str], list[str]]:
-        """Qwen generation with retries when tiers come back empty."""
+        """Qwen generation with retries when JSON/tiers are invalid or empty."""
         image_path = entry["image_path"]
         max_retries = self.config["captions"].get("max_generation_retries", 0)
         last_raw: dict = {}
 
         for attempt in range(max_retries + 1):
             raw_data = self.qwen.generate_captions(image_path, prompt)
-            if not self.validator.validate_json_structure(raw_data):
-                raise ValueError(f"Invalid JSON structure for {entry['image_id']}")
+            normalized = self.validator.normalize_caption_payload(raw_data)
+            if not self.validator.validate_json_structure(normalized):
+                logger.warning(
+                    "Invalid JSON structure for %s (attempt %d): %s",
+                    entry["image_id"],
+                    attempt + 1,
+                    raw_data,
+                )
+                if attempt < max_retries:
+                    prompt = (
+                        prompt
+                        + "\n\nReturn ONLY valid JSON with keys "
+                        '"most_probable" and "negative", each a list of one string.'
+                    )
+                    continue
+                raise ValueError(
+                    f"Invalid JSON structure for {entry['image_id']}: {raw_data}"
+                )
 
             most_probable, negatives = self.validator.validate_record(
-                raw_data.get("most_probable", []),
-                raw_data.get("negative", []),
+                normalized.get("most_probable", []),
+                normalized.get("negative", []),
             )
-            last_raw = raw_data
+            last_raw = normalized
 
             if most_probable and negatives:
                 return most_probable, negatives

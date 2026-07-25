@@ -150,10 +150,22 @@ class QwenVLCaptionModel:
                 raw = self._generate_raw(image_path, prompt)
                 logger.debug("Raw model output: %s", raw[:300])
                 data = extract_json_from_text(raw)
+                # Normalize string tiers early so structure checks pass
+                for key in ("most_probable", "negative", "positive", "positives", "negatives"):
+                    if key in data and isinstance(data[key], str):
+                        data[key] = [data[key]]
                 if "most_probable" in data and "negative" in data:
                     return data
                 # Regeneration prompts return negatives only.
                 if "negative" in data and "most_probable" not in data:
+                    return data
+                # Accept positive/positives as most_probable
+                if "negative" in data and (
+                    "positive" in data or "positives" in data
+                ):
+                    data["most_probable"] = data.get("positive") or data.get("positives")
+                    if isinstance(data["most_probable"], str):
+                        data["most_probable"] = [data["most_probable"]]
                     return data
                 raise ValueError(f"Unexpected JSON keys: {list(data.keys())}")
             except (json.JSONDecodeError, ValueError) as exc:

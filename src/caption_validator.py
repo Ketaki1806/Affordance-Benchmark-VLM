@@ -63,6 +63,34 @@ class CaptionValidator:
                 )
         return valid
 
+    def normalize_caption_payload(self, data: dict) -> dict:
+        """
+        Coerce common Qwen variants into {most_probable: [str], negative: [str]}.
+        Accepts a single string instead of a list for either tier.
+        """
+        if not isinstance(data, dict):
+            return {}
+
+        # Occasional alternate key spellings from the model
+        aliases = {
+            "most_probable": ("most_probable", "mostProbable", "positive", "positives"),
+            "negative": ("negative", "negatives", "hard_negative", "hardNegative"),
+        }
+        out: dict = {}
+        for canon, keys in aliases.items():
+            value = None
+            for key in keys:
+                if key in data:
+                    value = data[key]
+                    break
+            if value is None:
+                continue
+            if isinstance(value, str):
+                value = [value]
+            if isinstance(value, list):
+                out[canon] = [str(v).strip() for v in value if str(v).strip()]
+        return out
+
     def validate_json_structure(self, data: dict) -> bool:
         if not isinstance(data, dict):
             return False
