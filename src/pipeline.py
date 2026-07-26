@@ -103,7 +103,11 @@ class AffordanceCaptionPipeline:
                 "Add images under data/sample/ matching manifest.json."
             )
 
-        prompt = self.prompt_builder.build_prompt(entry["object"])
+        prompt = self.prompt_builder.build_prompt(
+            entry["object"],
+            part=entry.get("part"),
+            attributes=entry.get("attributes"),
+        )
         logger.info("Generating captions for %s (%s)", entry["image_id"], entry["object"])
 
         most_probable, negatives = self._generate_validated_captions(entry, prompt)

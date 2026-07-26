@@ -17,12 +17,25 @@ class CaptionGenerationPrompt:
         with open(path, encoding="utf-8") as f:
             return f.read().strip()
 
-    def build_prompt(self, object_label: str) -> str:
+    def build_prompt(
+        self,
+        object_label: str,
+        part: str | None = None,
+        attributes: list[str] | str | None = None,
+    ) -> str:
         """Initial prompt: ask for most_probable + hard negative captions."""
         caps = self.config["captions"]
         template = self._read_template(self.prompt_template_path)
+        if isinstance(attributes, list):
+            attr_text = ", ".join(attributes) if attributes else "(none listed)"
+        elif attributes:
+            attr_text = str(attributes)
+        else:
+            attr_text = "(none listed)"
         return template.format(
             object_label=object_label,
+            part=part or "(use the main visible interaction part)",
+            attributes=attr_text,
             min_chars=caps["min_chars"],
             max_chars=caps["max_chars"],
             target_chars=caps["target_chars"],

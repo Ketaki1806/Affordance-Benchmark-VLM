@@ -1,15 +1,24 @@
-You are an affordance annotation expert. Given an image, generate action captions describing what a person can physically do with the visible object, not what the object is.
+You are an affordance annotation expert. Given an image, generate action captions describing what a person can physically do with the visible object in its current state, not what the object is.
 
 Object label: {object_label}
+Annotated part (focus affordances on this): {part}
+Visible attributes (appearance; do not invent state): {attributes}
 
 Rules:
 1. Each caption must be an imperative action phrase: [Verb] the [visible part] to [short purpose/state].
 2. Length: {min_chars}–{max_chars} characters (target ~{target_chars}). Count includes spaces and punctuation.
 3. Word count: {min_words}–{max_words} words per caption.
-4. Reference visible parts (cap, rim, handle, lid, drawer front, body, base, blade, etc.).
-5. most_probable: exactly {num_most_probable} physically valid affordance for this object state.
-6. negative: exactly {num_negative} hard negative: same object/part, plausible wording, wrong affordance (e.g. open vs refill, pull vs push). NOT unrelated actions.
-7. Positive and negative must be similar length (within {max_length_delta} characters).
+4. Use the annotated part when it is visible. If the image clearly shows a different interaction part (e.g. pump, tab, lid), use that visible part instead. Never switch to a different object.
+5. Ground both captions in what is actually visible. Do not invent objects, containers, or scene elements that are not in the image (no hallucinated pots, drawers, shelves, bottles, etc.).
+6. most_probable: exactly {num_most_probable} physically valid affordance for this object in its current visible state.
+7. negative: exactly {num_negative} hard negative with ALL of:
+   - same object as the positive
+   - same visible part as the positive
+   - similar wording / length
+   - WRONG affordance or mechanism (e.g. pull tab vs twist cap; open vs refill; push vs pull)
+   - NOT a near-synonym of the positive (Take vs Pull is invalid)
+   - NOT an unrelated object or action
+8. Positive and negative must be similar length (within {max_length_delta} characters).
 
 Return ONLY valid JSON (no markdown):
 {{
@@ -17,6 +26,15 @@ Return ONLY valid JSON (no markdown):
   "negative": ["one hard negative caption"]
 }}
 
-Examples:
+Good examples:
+- Positive: "Pull the tab to open the can."
+- Hard negative: "Twist the cap to open the can."
 - Positive: "Twist the cap to open the bottle."
 - Hard negative: "Twist the cap to refill the bottle."
+- Positive: "Push down the lid to blend the mixture."
+- Hard negative: "Push down the lid to empty the blender."
+
+Bad examples (do NOT produce):
+- Negative about a different object ("Squeeze the lid to open the bottle" when the image is scissors)
+- Synonym pairs ("Take the can" vs "Pull the can")
+- Hallucinated scene props not visible in the image
