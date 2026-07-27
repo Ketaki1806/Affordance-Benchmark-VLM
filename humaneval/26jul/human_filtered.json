@@ -14,8 +14,8 @@
       }
     },
     {
-      "image_id": "lvis_192612",
-      "image_path": "/nethome/kahadnurkar/Affordance-Benchmark-VLM/data/paco/images/000000192612.jpg",
+      "image_id": "lvis_192692",
+      "image_path": "/nethome/kahadnurkar/Affordance-Benchmark-VLM/data/paco/images/000000192692.jpg",
       "object": "bowl",
       "affordance_tiers": {
         "most_probable": [
