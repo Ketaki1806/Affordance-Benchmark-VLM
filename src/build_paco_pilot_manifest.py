@@ -132,7 +132,7 @@ def _resolve_image_path(image_root: Path | None, file_name: str) -> Path | None:
 
 
 def _download_coco_image(file_name: str, image_root: Path) -> Path | None:
-    """Fetch one COCO image; try val2017 then train2017 CDN paths."""
+    """Fetch one COCO image. Prefer train2017 (PACO-LVIS val usually lives there)."""
     import urllib.error
     import urllib.request
 
@@ -141,22 +141,23 @@ def _download_coco_image(file_name: str, image_root: Path) -> Path | None:
     if existing is not None:
         return existing
 
-    for split in ("val2017", "train2017"):
+    # PACO-LVIS val images are usually under COCO train2017, not val2017.
+    for split in ("train2017", "val2017"):
         url = f"http://images.cocodataset.org/{split}/{name}"
         dest_dir = image_root / split
         dest_dir.mkdir(parents=True, exist_ok=True)
         dest = dest_dir / name
         try:
-            print(f"  downloading {url}")
+            print(f"  downloading {url}", flush=True)
             urllib.request.urlretrieve(url, dest)
             if dest.is_file() and dest.stat().st_size > 1000:
                 return dest
             dest.unlink(missing_ok=True)
         except urllib.error.HTTPError as exc:
-            print(f"  skip {split}: HTTP {exc.code}")
+            print(f"  skip {split}: HTTP {exc.code}", flush=True)
             dest.unlink(missing_ok=True)
         except OSError as exc:
-            print(f"  skip {split}: {exc}")
+            print(f"  skip {split}: {exc}", flush=True)
             dest.unlink(missing_ok=True)
     return None
 
@@ -177,7 +178,8 @@ def _diagnose_image_root(data: dict[str, Any], image_root: Path | None) -> None:
         print(f"  example PACO file_name values: {sample}")
         print(
             "  Hint: PACO-LVIS val images are often under COCO train2017. "
-            "Use --download-missing to fetch only the pilot images."
+            "Prefer downloading train2017.zip once, or re-run with "
+            "--download-missing under nohup/tmux (login may kill long CDN loops)."
         )
 
 
@@ -338,18 +340,26 @@ def ensure_images(
     image_root: Path,
     download_missing: bool,
 ) -> None:
-    """Resolve each selected image; optionally download missing COCO files."""
+    """Resolve each selected image; optionally download missing COCO files (resumable)."""
     missing = 0
-    for item in selected:
+    already = 0
+    fetched = 0
+    total = len(selected)
+    for i, item in enumerate(selected, start=1):
         resolved = item.get("resolved_path")
         path = Path(resolved) if resolved else None
         if path is None or not path.is_file():
             path = _resolve_image_path(image_root, item["file"])
-        if (path is None or not path.is_file()) and download_missing:
+        if path is not None and path.is_file():
+            already += 1
+        elif download_missing:
+            print(f"  [{i}/{total}] need download for {item['image_id']}", flush=True)
             path = _download_coco_image(item["file"], image_root)
+            if path is not None and path.is_file():
+                fetched += 1
         if path is None or not path.is_file():
             missing += 1
-            print(f"  MISSING image for {item['image_id']}: {item['file']}")
+            print(f"  MISSING image for {item['image_id']}: {item['file']}", flush=True)
             item["resolved_path"] = None
             continue
         item["resolved_path"] = str(path)
@@ -358,10 +368,15 @@ def ensure_images(
             item["file"] = str(Path(path).relative_to(image_root))
         except ValueError:
             item["file"] = Path(path).name
+    print(
+        f"  images: already={already}  fetched={fetched}  missing={missing}  total={total}",
+        flush=True,
+    )
     if missing:
         raise SystemExit(
             f"{missing}/{len(selected)} images missing. "
-            "Re-run with --download-missing or add train2017 images."
+            "Re-run with --download-missing (skips files already on disk), "
+            "or install COCO train2017 under --image-root."
         )
 
 
