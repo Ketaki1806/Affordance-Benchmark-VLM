@@ -1,5 +1,7 @@
 """Load/save manifest and caption JSON (PACO-LVIS-ready schema)."""
 
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from typing import Any
@@ -44,12 +46,62 @@ def load_manifest(manifest_path: Path | str | None = None) -> list[dict[str, Any
     return entries
 
 
+def load_captions(path: Path | str) -> dict[str, Any]:
+    """Load caption JSON; return empty objects list if missing."""
+    p = Path(path)
+    if not p.is_file():
+        return {"objects": []}
+    with open(p, encoding="utf-8") as f:
+        data = json.load(f)
+    if not isinstance(data, dict):
+        return {"objects": []}
+    objects = data.get("objects", [])
+    if not isinstance(objects, list):
+        objects = []
+    return {"objects": objects}
+
+
 def save_captions(data: dict[str, Any], output_path: Path | str) -> None:
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
         f.write("\n")
+
+
+def completed_image_ids(captions: dict[str, Any]) -> set[str]:
+    ids: set[str] = set()
+    for obj in captions.get("objects", []):
+        image_id = obj.get("image_id")
+        if not image_id:
+            continue
+        tiers = obj.get("affordance_tiers") or {}
+        pos = tiers.get("most_probable") or []
+        neg = tiers.get("negative") or []
+        if pos and neg:
+            ids.add(str(image_id))
+    return ids
+
+
+def shard_entries(
+    entries: list[dict[str, Any]],
+    shard_index: int,
+    num_shards: int,
+) -> list[dict[str, Any]]:
+    """Deterministic round-robin shard over a sorted image_id order."""
+    if num_shards <= 1:
+        return entries
+    if shard_index < 0 or shard_index >= num_shards:
+        raise ValueError(f"shard_index must be in [0, {num_shards})")
+    ordered = sorted(entries, key=lambda e: str(e["image_id"]))
+    return [e for i, e in enumerate(ordered) if i % num_shards == shard_index]
+
+
+def shard_output_path(base: Path, shard_index: int | None) -> Path:
+    """artifacts/captions/val_full/raw.json -> raw.shard3.json when sharding."""
+    if shard_index is None:
+        return base
+    return base.with_name(f"{base.stem}.shard{shard_index}{base.suffix}")
 
 
 def build_image_record(

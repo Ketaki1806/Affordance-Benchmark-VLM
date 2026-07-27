@@ -4,17 +4,30 @@ Affordance caption pipeline.
 Generate and validate captions with Qwen2.5-VL; write the same pairs to raw.json
 and filtered.json (no CLIP adversarial filtering).
 
-Outputs:
-  artifacts/captions/raw.json       validated captions
-  artifacts/captions/filtered.json  same pairs, used by stage 4 eval
+Supports resume (skip completed image_ids), incremental saves, and Condor sharding.
+
+Outputs (from config; shard runs write *.shard{K}.json):
+  artifacts/captions/.../raw.json
+  artifacts/captions/.../filtered.json
 """
 
+from __future__ import annotations
+
+import argparse
 from pathlib import Path
 
 from caption_generation_prompt import CaptionGenerationPrompt
 from caption_validator import CaptionValidator
 from config_loader import PROJECT_ROOT, load_config, resolve_path
-from dataset_io import build_image_record, load_manifest, save_captions
+from dataset_io import (
+    build_image_record,
+    completed_image_ids,
+    load_captions,
+    load_manifest,
+    save_captions,
+    shard_entries,
+    shard_output_path,
+)
 from logger import get_logger
 from model import QwenVLCaptionModel
 
@@ -28,10 +41,14 @@ class AffordanceCaptionPipeline:
         self.validator = CaptionValidator(self.config)
         self.qwen = QwenVLCaptionModel(self.config)
 
-    def _output_paths(self) -> tuple[Path, Path]:
+    def _base_output_paths(self) -> tuple[Path, Path]:
         raw = resolve_path(self.config["output"]["raw_captions"], PROJECT_ROOT)
         filtered = resolve_path(self.config["output"]["filtered_captions"], PROJECT_ROOT)
         return raw, filtered
+
+    def _output_paths(self, shard_index: int | None) -> tuple[Path, Path]:
+        raw, filtered = self._base_output_paths()
+        return shard_output_path(raw, shard_index), shard_output_path(filtered, shard_index)
 
     def _generate_validated_captions(
         self,
@@ -39,12 +56,11 @@ class AffordanceCaptionPipeline:
         prompt: str,
     ) -> tuple[list[str], list[str]]:
         """Qwen generation with retries when JSON/tiers are invalid or empty."""
-        image_path = entry["image_path"]
         max_retries = self.config["captions"].get("max_generation_retries", 0)
         last_raw: dict = {}
 
         for attempt in range(max_retries + 1):
-            raw_data = self.qwen.generate_captions(image_path, prompt)
+            raw_data = self.qwen.generate_captions(entry["image_path"], prompt)
             normalized = self.validator.normalize_caption_payload(raw_data)
             if not self.validator.validate_json_structure(normalized):
                 logger.warning(
@@ -100,7 +116,7 @@ class AffordanceCaptionPipeline:
         if not Path(image_path).is_file():
             raise FileNotFoundError(
                 f"Image not found for {entry['image_id']}: {image_path}. "
-                "Add images under data/sample/ matching manifest.json."
+                "Check data.sample_dir / image_root and the manifest file paths."
             )
 
         prompt = self.prompt_builder.build_prompt(
@@ -113,28 +129,76 @@ class AffordanceCaptionPipeline:
         most_probable, negatives = self._generate_validated_captions(entry, prompt)
         return build_image_record(entry, most_probable, negatives)
 
-    def run(self, manifest_path: str | None = None) -> tuple[Path, Path]:
+    def run(
+        self,
+        manifest_path: str | None = None,
+        *,
+        resume: bool = True,
+        limit: int | None = None,
+        shard_index: int | None = None,
+        num_shards: int = 1,
+        save_every: int = 1,
+    ) -> tuple[Path, Path]:
         entries = load_manifest(manifest_path)
         if not entries:
             raise ValueError("Manifest contains no images")
 
-        raw_path, filtered_path = self._output_paths()
+        if num_shards > 1:
+            if shard_index is None:
+                raise ValueError("num_shards > 1 requires shard_index")
+            entries = shard_entries(entries, shard_index, num_shards)
+            logger.info(
+                "Shard %d/%d: %d manifest entries",
+                shard_index,
+                num_shards,
+                len(entries),
+            )
 
-        logger.info("Loading Qwen-VL for caption generation")
+        raw_path, filtered_path = self._output_paths(shard_index)
+
+        existing = load_captions(raw_path) if resume else {"objects": []}
+        done_ids = completed_image_ids(existing) if resume else set()
+        # Keep only complete pairs so retries do not duplicate image_ids
+        records: list[dict] = [
+            obj
+            for obj in existing.get("objects", [])
+            if str(obj.get("image_id", "")) in done_ids
+        ]
+        if done_ids:
+            logger.info("Resume: skipping %d completed image_ids in %s", len(done_ids), raw_path)
+
+        pending = [e for e in entries if e["image_id"] not in done_ids]
+        if limit is not None:
+            pending = pending[: max(0, limit)]
+
+        if not pending:
+            logger.info("Nothing to process; writing existing records to filtered path")
+            output = {"objects": records}
+            save_captions(output, raw_path)
+            save_captions(output, filtered_path)
+            return raw_path, filtered_path
+
+        logger.info("Loading Qwen-VL for caption generation (%d pending)", len(pending))
         self.qwen.load_model()
 
-        records: list[dict] = []
         try:
-            for entry in entries:
+            for i, entry in enumerate(pending, start=1):
                 record = self._process_image(entry)
                 records.append(record)
                 tiers = record["affordance_tiers"]
                 logger.info(
-                    "Done %s: %d pos, %d neg",
+                    "Done %s (%d/%d): %d pos, %d neg",
                     entry["image_id"],
+                    i,
+                    len(pending),
                     len(tiers["most_probable"]),
                     len(tiers["negative"]),
                 )
+                if save_every > 0 and (i % save_every == 0 or i == len(pending)):
+                    output = {"objects": records}
+                    save_captions(output, raw_path)
+                    save_captions(output, filtered_path)
+                    logger.info("Checkpoint saved (%d records) -> %s", len(records), raw_path)
         finally:
             self.qwen.unload()
 
@@ -146,8 +210,55 @@ class AffordanceCaptionPipeline:
         return raw_path, filtered_path
 
 
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument(
+        "--manifest",
+        default=None,
+        help="Override config data.manifest_path",
+    )
+    p.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Process at most N pending images (after resume/shard filters)",
+    )
+    p.add_argument(
+        "--shard-index",
+        type=int,
+        default=None,
+        help="0-based shard index (with --num-shards)",
+    )
+    p.add_argument(
+        "--num-shards",
+        type=int,
+        default=1,
+        help="Total number of shards (default 1 = no sharding)",
+    )
+    p.add_argument(
+        "--no-resume",
+        action="store_true",
+        help="Ignore existing shard/output JSON and regenerate",
+    )
+    p.add_argument(
+        "--save-every",
+        type=int,
+        default=1,
+        help="Write checkpoint every N images (default 1)",
+    )
+    return p.parse_args()
+
+
 if __name__ == "__main__":
+    args = parse_args()
     pipeline = AffordanceCaptionPipeline()
-    raw, filtered = pipeline.run()
+    raw, filtered = pipeline.run(
+        args.manifest,
+        resume=not args.no_resume,
+        limit=args.limit,
+        shard_index=args.shard_index,
+        num_shards=args.num_shards,
+        save_every=max(1, args.save_every),
+    )
     print(f"Raw:      {raw}")
     print(f"Filtered: {filtered}")

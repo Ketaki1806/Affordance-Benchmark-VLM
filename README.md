@@ -128,7 +128,13 @@ source scripts/activate_env.sh
 bash scripts/cluster_cleanup.sh --all
 ```
 
-## PACO-LVIS pilot (cluster)
+## PACO-LVIS (cluster)
+
+### Scale choice
+
+PACO-LVIS **val** has ~2,410 images and ~20.9k part segments. Enumerating every part instance (~21k Qwen jobs) is out of seminar scope. The **full-val** run uses **one preferred interaction part per unique image** (≤ ~2,410 pairs): `cap`/`lid`/`handle`/… ranking from `build_paco_pilot_manifest.py`. Captions are **model-generated** (Qwen → rule validation → CLIP); human filter stays on the N=20 pilot only. Open-VLJEPA is left disabled for the full-val CLIP run (same `filtered.json` can be scored later).
+
+### Annotations + images
 
 1. Download annotations (login node; `wget` may be missing — use `curl`):
 
@@ -141,7 +147,7 @@ unzip paco_lvis_v1.zip   # or: python -c "import zipfile; zipfile.ZipFile('paco_
 
 2. Point `--image-root` at COCO 2017 images (`val2017/` / `train2017/`). PACO-LVIS reuses those files.
 
-3. Build a 15–20 image pilot manifest (one image per category, prefers interaction parts like cap/handle/lid):
+### Pilot (N≈20, human-check)
 
 ```bash
 cd ~/Affordance-Benchmark-VLM
@@ -154,15 +160,44 @@ bash scripts/build_paco_pilot_manifest.sh \
   --copy-images
 ```
 
-4. Point `configs/config.yaml` at the pilot:
+Then set `data.sample_dir` / `data.manifest_path` to the pilot paths, run `condor_submit_pipeline.sh`, human-edit captions, evaluate.
+
+### Full val (one preferred part / image)
+
+```bash
+# Login: build manifest (prefer pointing sample_dir at COCO root; avoid copying ~2k images)
+bash scripts/build_paco_val_manifest.sh \
+  --ann data/paco/annotations/paco_lvis_v1_val.json \
+  --image-root /path/to/coco \
+  --require-image \
+  --download-missing
+```
+
+`configs/config.yaml` already targets:
 
 ```yaml
 data:
-  sample_dir: data/paco/images
-  manifest_path: data/paco/manifest_pilot.json
+  sample_dir: data/paco/coco          # or your COCO root
+  manifest_path: data/paco/manifest_val_full.json
+output:
+  raw_captions: artifacts/captions/val_full/raw.json
+  filtered_captions: artifacts/captions/val_full/filtered.json
+  eval_clip: artifacts/eval/val_full/clip.json
+  eval_summary: artifacts/eval/val_full/summary.json
 ```
 
-5. Submit the caption pipeline on the submit node, then human-review `artifacts/captions/raw.json` before CLIP eval.
+Sharded Qwen generation + merge + CLIP (submit node):
+
+```bash
+ssh submit
+cd ~/Affordance-Benchmark-VLM
+bash scripts/condor_submit_pipeline_sharded.sh 10   # 10 shards; resume-safe
+# wait until all Process jobs finish
+bash scripts/merge_caption_shards.sh
+bash scripts/condor_submit_evaluate.sh
+```
+
+Pipeline CLI also supports `--shard-index`, `--num-shards`, `--limit`, `--no-resume`, `--save-every`.
 
 Manifest schema fields: `paco_category`, `part`, `attributes`, `source_split` (optional extras beyond `image_id` / `file` / `object`).
 
@@ -175,7 +210,7 @@ Edit [configs/config.yaml](configs/config.yaml):
 | `captions.min_chars` / `max_chars` | 25 / 55 | Caption length limits (pilot uses 25 min) |
 | `captions.num_most_probable` | 1 | Positive captions per image (pilot) |
 | `captions.num_negative` | 1 | Negative captions per image (pilot) |
-| `models.clip_device` | `cpu` | CLIP on CPU during stage 4 eval |
+| `models.clip_device` | `cuda` | CLIP device for stage 4 eval (full-val) |
 
 ## Notes
 

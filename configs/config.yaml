@@ -1,20 +1,24 @@
 project_name: affordance_benchmark
 
 data:
-  sample_dir: data/paco/images
-  manifest_path: data/paco/manifest_pilot.json
+  # Full PACO-LVIS val (one preferred part per image). For the N=20 pilot use:
+  #   sample_dir: data/paco/images
+  #   manifest_path: data/paco/manifest_pilot.json
+  # Point sample_dir at the COCO root (train2017/val2017) or a copy/symlink dir.
+  sample_dir: data/paco/coco
+  manifest_path: data/paco/manifest_val_full.json
 
 output:
-  raw_captions: artifacts/captions/raw.json
-  filtered_captions: artifacts/captions/filtered.json
-  eval_clip: artifacts/eval/clip.json
-  eval_vljepa: artifacts/eval/open_vljepa.json
-  eval_summary: artifacts/eval/summary.json
+  raw_captions: artifacts/captions/val_full/raw.json
+  filtered_captions: artifacts/captions/val_full/filtered.json
+  eval_clip: artifacts/eval/val_full/clip.json
+  eval_vljepa: artifacts/eval/val_full/open_vljepa.json
+  eval_summary: artifacts/eval/val_full/summary.json
 
 models:
   qwen_vl: Qwen/Qwen2.5-VL-7B-Instruct
   clip: openai/clip-vit-large-patch14
-  clip_device: cpu
+  clip_device: cuda
   qwen_dtype: float16
   min_pixels: 200704
   max_pixels: 1003520

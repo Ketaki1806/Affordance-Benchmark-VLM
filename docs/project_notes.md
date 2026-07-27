@@ -3,7 +3,7 @@
 Draft material for the AVPR seminar report (`D:\Uni\SS2026\Seminar\Project\Report\main.tex`).  
 Update sections as pipeline runs and evaluation results arrive.
 
-Last updated: 2026-07-25
+Last updated: 2026-07-27
 
 ### Report structure map (ACL template)
 
@@ -50,8 +50,9 @@ This project targets those gaps from a complementary angle. Rather than predicti
 |-----------|--------|-----------|
 | Caption model | Qwen2.5-VL-7B-Instruct | Image-conditioned JSON: 1 pos + 1 hard neg |
 | Adversarial CLIP filter | **Removed** | Circular if CLIP both filters and evaluates |
-| Human validation | Pilot (N=20) | Ground captions; fix Qwen mistakes |
-| Dataset (current) | PACO-LVIS val, 1 image/category | `data/paco/manifest_pilot.json` + COCO jpgs |
+| Human validation | Pilot (N=20) only | Full-val is too large to hand-filter |
+| Dataset (pilot) | PACO-LVIS val, 1 image/category | `data/paco/manifest_pilot.json` |
+| Dataset (full-val) | PACO-LVIS val, 1 preferred part / image | `data/paco/manifest_val_full.json` (≤~2410; not ~21k part instances) |
 
 ### Stage 4 inference
 
@@ -102,11 +103,26 @@ Fill in after each experiment run. Copy numbers from `artifacts/eval/` when avai
 
 **Caveat for the report:** these numbers use format-valid Qwen captions only. Several pairs fail human-check (wrong object, unrelated negative; see §7). Re-run CLIP after editing `filtered.json` before claiming PACO-LVIS pilot results.
 
-### 4.3 Frozen Open-VLJEPA inference
+Human-filtered pilot CLIP (2026-07-27): **0.50** (10/20), mean gap ~0.025 — chance-level; see `humaneval/26jul/clip_human.json`.
+
+### 4.3 Full PACO-LVIS val (model-generated captions)
+
+**Scope:** one preferred interaction part per unique val image (cap/lid/handle ranking). Not every part segment (~20.9k): that would be ~175–350 GPU-hours and is out of seminar scope.
 
 | Metric | Value | Date | Notes |
 |--------|-------|------|-------|
-| Binary accuracy | TBD | | optional |
+| Manifest | TBD | | `build_paco_val_manifest.py` → `manifest_val_full.json` |
+| Caption pipeline | TBD | | sharded Condor + `merge_caption_shards.py` |
+| CLIP binary accuracy | TBD | | `artifacts/eval/val_full/`; no human filter |
+| Mean confidence gap | TBD | | |
+
+Report full-val as **Qwen → rules → CLIP** (model-generated). Keep §7 human-check as the quality baseline for the pilot.
+
+### 4.4 Frozen Open-VLJEPA inference
+
+| Metric | Value | Date | Notes |
+|--------|-------|------|-------|
+| Binary accuracy | TBD | | optional; same `val_full/filtered.json` later |
 | vs CLIP delta | TBD | | |
 
 ---
