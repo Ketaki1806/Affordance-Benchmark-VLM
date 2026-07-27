@@ -129,6 +129,26 @@ def main() -> None:
 
     if args.require_image and args.image_root is None:
         raise SystemExit("--require-image needs --image-root")
+    if args.download_missing and args.image_root is None:
+        raise SystemExit("--download-missing needs --image-root")
+
+    if args.image_root is not None:
+        root_str = str(args.image_root).replace("\\", "/").lower()
+        if "path/to" in root_str or root_str in {"/path/to/coco", "path/to/coco"}:
+            raise SystemExit(
+                f"--image-root looks like a placeholder: {args.image_root}\n"
+                "Use your real COCO root, e.g. data/paco/coco "
+                "(must contain train2017/ and/or val2017/), "
+                "or the path you used for the pilot."
+            )
+
+    # With --download-missing, do not filter on disk yet; ensure_images fetches later.
+    require_image = args.require_image and not args.download_missing
+    if args.require_image and args.download_missing:
+        print(
+            "Note: --download-missing disables upfront --require-image filtering; "
+            "missing files are fetched after selection."
+        )
 
     print(f"Loading {args.ann} ...")
     data = _load_json(args.ann)
@@ -149,7 +169,7 @@ def main() -> None:
     by_object = _build_candidates(
         data,
         image_root=args.image_root,
-        require_image=args.require_image,
+        require_image=require_image,
         min_area=args.min_area,
     )
     n_object_candidates = sum(len(v) for v in by_object.values())

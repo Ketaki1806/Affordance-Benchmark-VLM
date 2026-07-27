@@ -166,10 +166,17 @@ Then set `data.sample_dir` / `data.manifest_path` to the pilot paths, run `condo
 
 ```bash
 # Login: build manifest (prefer pointing sample_dir at COCO root; avoid copying ~2k images)
+# Prefer an existing COCO tree (same root as the pilot). Do NOT use /path/to/coco.
+# If images are already on disk:
 bash scripts/build_paco_val_manifest.sh \
   --ann data/paco/annotations/paco_lvis_v1_val.json \
-  --image-root /path/to/coco \
-  --require-image \
+  --image-root data/paco/coco \
+  --require-image
+
+# Or build the list first, then download missing jpgs into that root (~2k files):
+bash scripts/build_paco_val_manifest.sh \
+  --ann data/paco/annotations/paco_lvis_v1_val.json \
+  --image-root data/paco/coco \
   --download-missing
 ```
 
@@ -177,7 +184,7 @@ bash scripts/build_paco_val_manifest.sh \
 
 ```yaml
 data:
-  sample_dir: data/paco/coco          # or your COCO root
+  sample_dir: data/paco/coco          # must match --image-root above
   manifest_path: data/paco/manifest_val_full.json
 output:
   raw_captions: artifacts/captions/val_full/raw.json
