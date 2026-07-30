@@ -14,19 +14,25 @@ output:
   raw_captions: artifacts/captions/val_full/raw.json
   filtered_captions: artifacts/captions/val_full/filtered.json
   eval_clip: artifacts/eval/val_full/clip.json
+  eval_siglip: artifacts/eval/val_full/siglip.json
   eval_vljepa: artifacts/eval/val_full/open_vljepa.json
+  eval_yspace: artifacts/eval/val_full/yspace_caption_analysis.json
   eval_summary: artifacts/eval/val_full/summary.json
 
 models:
   qwen_vl: Qwen/Qwen2.5-VL-7B-Instruct
   clip: openai/clip-vit-large-patch14
   clip_device: cuda
+  siglip: google/siglip-so400m-patch14-384
+  siglip_device: cuda
+  y_encoder: google/embeddinggemma-300m
+  y_encoder_device: cuda
   qwen_dtype: float16
   min_pixels: 200704
   max_pixels: 1003520
-  
+
   open_vljepa:
-    enabled: false
+    enabled: true
     repo_root: vendor/open-vljepa
     checkpoint: artifacts/checkpoints/open-vljepa/best.pt
     device: cuda
@@ -52,4 +58,4 @@ generation:
 
 eval:
   backends:
-    - clip
+    - open_vljepa

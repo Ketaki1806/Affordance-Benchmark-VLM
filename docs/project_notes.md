@@ -60,7 +60,9 @@ This project targets those gaps from a complementary angle. Rather than predicti
 | Backend | Module | Status |
 |---------|--------|--------|
 | CLIP (baseline) | `src/clip_scorer.py`, `src/evaluate.py` | Ready |
-| Open-VLJEPA | `src/open_vljepa_scorer.py` | Optional (`enabled: false`) |
+| SigLIP | `src/siglip_scorer.py` | Ready (interim vs CLIP) |
+| Y-space (EmbeddingGemma) | `src/analyze_caption_yspace.py` | Ready (text-only) |
+| Open-VLJEPA | `src/open_vljepa_scorer.py` | Deferred (`enabled: false`; Llama PENDING) |
 
 ### Scope of “negative”
 
@@ -113,19 +115,45 @@ Human-filtered pilot CLIP (2026-07-27): **0.50** (10/20), mean gap ~0.025 — ch
 | Metric | Value | Date | Notes |
 |--------|-------|------|-------|
 | Manifest pool | 1129 | 2026-07-30 | `manifest_val_full.json` |
-| Eval / caption set | **100** | | `manifest_val_100.json`; resource-limited |
-| Caption pipeline | TBD | | single Condor GPU job |
-| CLIP binary accuracy | TBD | | `artifacts/eval/val_full/`; model-generated |
-| Mean confidence gap | TBD | | |
+| Eval / caption set | **100** | 2026-07-30 | `manifest_val_100.json`; resource-limited |
+| Caption pipeline | **100/100** | 2026-07-30 | single Condor GPU job; model-generated |
+| CLIP binary accuracy | **0.63** (63/37) | 2026-07-30 | `artifacts/eval/val_full/` |
+| Mean confidence gap | **0.021** | 2026-07-30 | small margins; many near-ties |
 
 Report wording: *Due to single-GPU cluster quotas we evaluate a 100-image category-diverse subsample of the preferred-part PACO-LVIS val pool (1129 images available); full-pool and all-part-instance runs are left to future work.*
 
-### 4.4 Frozen Open-VLJEPA inference
+### 4.4 SigLIP (N = 100, same captions as CLIP)
+
+Interim image–caption aligner while Open-VLJEPA is blocked on gated Llama-3.2 access (`PENDING` as of 2026-07-30).
 
 | Metric | Value | Date | Notes |
 |--------|-------|------|-------|
-| Binary accuracy | TBD | | optional; same captions later |
-| vs CLIP delta | TBD | | |
+| Binary accuracy | TBD | | `artifacts/eval/val_full/siglip.json` |
+| Mean confidence gap | TBD | | |
+| vs CLIP delta | TBD | | CLIP = 0.63 |
+
+Run: `eval.backends: [siglip]` then `bash scripts/condor_submit_evaluate.sh`.
+
+### 4.5 Y-space caption confusability (EmbeddingGemma)
+
+Text-only analysis of how close pos/neg pairs are in the Y-encoder family used by Open-VLJEPA (`google/embeddinggemma-300m`). Does **not** score images.
+
+| Metric | Value | Date | Notes |
+|--------|-------|------|-------|
+| Mean cos(pos, neg) | TBD | | `yspace_caption_analysis.json` |
+| Frac cos &gt; 0.9 | TBD | | high → lexically confusable hard negatives |
+| Mean cos when CLIP wrong | TBD | | optional join with `clip.json` |
+
+Run: `bash scripts/run_yspace_analysis.sh`.
+
+### 4.6 Frozen Open-VLJEPA inference
+
+Full paper-style image↔caption protocol. Llama-3.2 HF gating: **Accepted** (2026-07-30).
+
+| Metric | Value | Date | Notes |
+|--------|-------|------|-------|
+| Binary accuracy | TBD | | after `setup_open_vljepa.sh` + evaluate |
+| vs CLIP / SigLIP delta | TBD | | CLIP = 0.63 |
 
 ---
 
@@ -151,6 +179,7 @@ Captions follow `[Verb] the [visible part] to [purpose]`. Hard negatives should 
 
 | Date | Update |
 |------|--------|
+| 2026-07-30 | N=100 CLIP 63%; SigLIP + EmbeddingGemma Y-space code; Open-VLJEPA deferred (Llama PENDING) |
 | 2026-07-26 | CLIP PACO pilot: 70% (14/20), mean gap 0.030 on raw Qwen captions |
 | 2026-07-25 | PACO N=20 pipeline; human-check protocol + qualitative caption examples (§7); aligned to Report `main.tex` |
 | 2026-07-08 | Ablation study table |

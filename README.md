@@ -14,31 +14,38 @@ Outputs:
 - `artifacts/captions/raw.json`
 - `artifacts/captions/filtered.json` (input to stage 4 eval)
 
-## Stage 4 evaluation (CLIP, optional Open-VLJEPA)
+## Stage 4 evaluation (CLIP, SigLIP, optional Open-VLJEPA)
 
 After the caption pipeline completes, run evaluation on `filtered.json`:
 
 ```bash
-# Optional: Open-VLJEPA only if enabled in config.yaml
-bash scripts/setup_open_vljepa.sh
-huggingface-cli login
+# SigLIP (interim while Open-VLJEPA Llama access is pending):
+# configs/config.yaml → eval.backends: [siglip]
+bash scripts/condor_submit_evaluate.sh
 
-bash scripts/run_evaluate.sh
-# or on submit node:
+# Y-space caption confusability (EmbeddingGemma; no images):
+bash scripts/run_yspace_analysis.sh
+
+# Optional Open-VLJEPA only after Llama HF access is Accepted:
+bash scripts/setup_open_vljepa.sh
+# set models.open_vljepa.enabled: true and eval.backends: [open_vljepa]
+huggingface-cli login
 bash scripts/condor_submit_evaluate.sh
 ```
 
 | Backend | What it measures |
 |---------|------------------|
 | **CLIP** | Binary affordance choice (pos vs neg similarity) |
-| **Open-VLJEPA** | Same binary task with VL-JEPA embeddings (optional) |
+| **SigLIP** | Same binary task with SigLIP embeddings |
+| **Y-space** | Text-only cos(pos, neg) via EmbeddingGemma |
+| **Open-VLJEPA** | Same binary task with VL-JEPA (needs gated Llama) |
 
 Outputs:
-- `artifacts/eval/clip.json`
-- `artifacts/eval/open_vljepa.json`
-- `artifacts/eval/summary.json`
-
-Set `models.open_vljepa.enabled: false` in `config.yaml` to skip Open-VLJEPA.
+- `artifacts/eval/val_full/clip.json`
+- `artifacts/eval/val_full/siglip.json`
+- `artifacts/eval/val_full/yspace_caption_analysis.json`
+- `artifacts/eval/val_full/open_vljepa.json` (when enabled)
+- `artifacts/eval/val_full/summary.json`
 
 ### Analyze CLIP results (local)
 

@@ -1,0 +1,16 @@
+{
+  "source": "/nethome/kahadnurkar/Affordance-Benchmark-VLM/artifacts/captions/val_full/filtered.json",
+  "num_images": 100,
+  "results": {
+    "clip": {
+      "path": "/nethome/kahadnurkar/Affordance-Benchmark-VLM/artifacts/eval/val_full/clip.json",
+      "summary": {
+        "num_pairs": 100,
+        "binary_accuracy": 0.63,
+        "mean_confidence_gap": 0.020896238386631013,
+        "num_correct": 63,
+        "num_wrong": 37
+      }
+    }
+  }
+}

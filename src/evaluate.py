@@ -1,5 +1,5 @@
 """
-Stage 4 evaluation: frozen CLIP vs Open-VLJEPA on affordance caption pairs.
+Stage 4 evaluation: frozen CLIP / SigLIP / Open-VLJEPA on affordance caption pairs.
 
 For each (most_probable, negative) pair, the backend with higher cosine
 similarity wins. Outputs per-pair results and aggregate metrics.
@@ -15,6 +15,7 @@ from clip_scorer import CLIPScorer
 from config_loader import PROJECT_ROOT, load_config, resolve_path
 from logger import get_logger
 from open_vljepa_scorer import OpenVLJEPAScorer
+from siglip_scorer import SigLIPScorer
 
 logger = get_logger(__name__)
 
@@ -155,6 +156,13 @@ def run_evaluation(
             scorer: AffordanceScorer = CLIPScorer(cfg)
             result = _evaluate_backend("clip", scorer, records)
             out_path = resolve_path(cfg["output"]["eval_clip"], PROJECT_ROOT)
+        elif backend == "siglip":
+            scorer = SigLIPScorer(cfg)
+            result = _evaluate_backend("siglip", scorer, records)
+            out_path = resolve_path(
+                cfg["output"].get("eval_siglip", "artifacts/eval/siglip.json"),
+                PROJECT_ROOT,
+            )
         elif backend == "open_vljepa":
             if not cfg.get("models", {}).get("open_vljepa", {}).get("enabled", False):
                 logger.warning("Skipping open_vljepa (models.open_vljepa.enabled=false)")
