@@ -5,8 +5,10 @@ data:
   #   sample_dir: data/paco/images
   #   manifest_path: data/paco/manifest_pilot.json
   # Point sample_dir at the COCO root (train2017/val2017) or a copy/symlink dir.
+  # Resource-limited seminar run: N=100 subsample of val (see docs/project_notes.md).
+  # Full preferred-part pool is ~1129; rebuild without --n for that.
   sample_dir: data/paco/coco
-  manifest_path: data/paco/manifest_val_full.json
+  manifest_path: data/paco/manifest_val_100.json
 
 output:
   raw_captions: artifacts/captions/val_full/raw.json
@@ -22,6 +24,7 @@ models:
   qwen_dtype: float16
   min_pixels: 200704
   max_pixels: 1003520
+  
   open_vljepa:
     enabled: false
     repo_root: vendor/open-vljepa

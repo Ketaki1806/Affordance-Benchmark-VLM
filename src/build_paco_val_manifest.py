@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -59,6 +60,50 @@ def select_one_per_image(
     return selected
 
 
+def subsample_selected(
+    selected: list[dict[str, Any]],
+    n: int,
+    seed: int,
+) -> list[dict[str, Any]]:
+    """
+    Cap to n images: prefer category coverage, then random fill.
+
+    First take one image per paco_category (shuffle within cat),
+    then fill remaining slots from leftover images.
+    """
+    if n <= 0 or n >= len(selected):
+        return selected
+
+    rng = random.Random(seed)
+    by_cat: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for item in selected:
+        by_cat[item["paco_category"]].append(item)
+
+    picked: list[dict[str, Any]] = []
+    used: set[int] = set()
+    cats = sorted(by_cat.keys())
+    rng.shuffle(cats)
+    for cat in cats:
+        if len(picked) >= n:
+            break
+        pool = list(by_cat[cat])
+        rng.shuffle(pool)
+        choice = pool[0]
+        picked.append(choice)
+        used.add(choice["lvis_image_id"])
+
+    if len(picked) < n:
+        rest = [item for item in selected if item["lvis_image_id"] not in used]
+        rng.shuffle(rest)
+        for item in rest:
+            if len(picked) >= n:
+                break
+            picked.append(item)
+
+    picked.sort(key=lambda x: x["lvis_image_id"])
+    return picked[:n]
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
@@ -78,6 +123,18 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=PROJECT_ROOT / "data/paco/manifest_val_full.json",
         help="Output manifest path",
+    )
+    p.add_argument(
+        "--n",
+        type=int,
+        default=None,
+        help="Optional cap on number of images (category-diverse subsample)",
+    )
+    p.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="RNG seed used when --n is set",
     )
     p.add_argument(
         "--min-area",
@@ -183,6 +240,14 @@ def main() -> None:
         _diagnose_image_root(data, args.image_root)
         raise SystemExit(
             "No candidates found. Check --image-root / --require-image / --min-area."
+        )
+
+    pool_size = len(selected)
+    if args.n is not None:
+        selected = subsample_selected(selected, args.n, args.seed)
+        print(
+            f"  subsampled with --n {args.n} seed={args.seed}: "
+            f"{len(selected)} / {pool_size} pool images"
         )
 
     categories = sorted({item["paco_category"] for item in selected})

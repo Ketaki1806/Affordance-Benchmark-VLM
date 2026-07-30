@@ -52,7 +52,8 @@ This project targets those gaps from a complementary angle. Rather than predicti
 | Adversarial CLIP filter | **Removed** | Circular if CLIP both filters and evaluates |
 | Human validation | Pilot (N=20) only | Full-val is too large to hand-filter |
 | Dataset (pilot) | PACO-LVIS val, 1 image/category | `data/paco/manifest_pilot.json` |
-| Dataset (full-val) | PACO-LVIS val, 1 preferred part / image | `data/paco/manifest_val_full.json` (≤~2410; not ~21k part instances) |
+| Dataset (full-val pool) | PACO-LVIS val, 1 preferred part / image | ~1129 with images on disk (`manifest_val_full.json`) |
+| Dataset (reported scale-up) | **N=100** category-diverse subsample | `manifest_val_100.json`; single-GPU seminar limit |
 
 ### Stage 4 inference
 
@@ -105,24 +106,25 @@ Fill in after each experiment run. Copy numbers from `artifacts/eval/` when avai
 
 Human-filtered pilot CLIP (2026-07-27): **0.50** (10/20), mean gap ~0.025 — chance-level; see `humaneval/26jul/clip_human.json`.
 
-### 4.3 Full PACO-LVIS val (model-generated captions)
+### 4.3 PACO-LVIS val scale-up (N = 100, model-generated captions)
 
-**Scope:** one preferred interaction part per unique val image (cap/lid/handle ranking). Not every part segment (~20.9k): that would be ~175–350 GPU-hours and is out of seminar scope.
+**Scope decision (for the report):** PACO-LVIS val has 2,410 images / ~20.9k part segments. Enumerating every part instance is out of seminar scope. Even one preferred part per image yields a pool of **~1,129** images with local COCO train2017 files. Because only **one GPU** is available and Qwen2.5-VL-7B captioning is sequential (~hours for 100 images vs ~1 day for 1k+), the scale-up experiment uses a **category-diverse subsample of N = 100** (`--n 100 --seed 42` → `data/paco/manifest_val_100.json`). Captions are **not** human-filtered; the N=20 pilot remains the human-validated quality check.
 
 | Metric | Value | Date | Notes |
 |--------|-------|------|-------|
-| Manifest | TBD | | `build_paco_val_manifest.py` → `manifest_val_full.json` |
-| Caption pipeline | TBD | | sharded Condor + `merge_caption_shards.py` |
-| CLIP binary accuracy | TBD | | `artifacts/eval/val_full/`; no human filter |
+| Manifest pool | 1129 | 2026-07-30 | `manifest_val_full.json` |
+| Eval / caption set | **100** | | `manifest_val_100.json`; resource-limited |
+| Caption pipeline | TBD | | single Condor GPU job |
+| CLIP binary accuracy | TBD | | `artifacts/eval/val_full/`; model-generated |
 | Mean confidence gap | TBD | | |
 
-Report full-val as **Qwen → rules → CLIP** (model-generated). Keep §7 human-check as the quality baseline for the pilot.
+Report wording: *Due to single-GPU cluster quotas we evaluate a 100-image category-diverse subsample of the preferred-part PACO-LVIS val pool (1129 images available); full-pool and all-part-instance runs are left to future work.*
 
 ### 4.4 Frozen Open-VLJEPA inference
 
 | Metric | Value | Date | Notes |
 |--------|-------|------|-------|
-| Binary accuracy | TBD | | optional; same `val_full/filtered.json` later |
+| Binary accuracy | TBD | | optional; same captions later |
 | vs CLIP delta | TBD | | |
 
 ---

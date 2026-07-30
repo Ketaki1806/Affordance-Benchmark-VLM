@@ -162,51 +162,37 @@ bash scripts/build_paco_pilot_manifest.sh \
 
 Then set `data.sample_dir` / `data.manifest_path` to the pilot paths, run `condor_submit_pipeline.sh`, human-edit captions, evaluate.
 
-### Full val (one preferred part / image)
+### Full val / scale-up (one preferred part / image)
+
+PACO-LVIS val preferred-part pool is ~1k+ images with local COCO files. For seminar compute (single GPU), use a **category-diverse N=100** subsample and state that limit in the report:
 
 ```bash
-# Login: build manifest (prefer pointing sample_dir at COCO root; avoid copying ~2k images)
-# Prefer an existing COCO tree (same root as the pilot). Do NOT use /path/to/coco.
-# If images are already on disk:
 bash scripts/build_paco_val_manifest.sh \
   --ann data/paco/annotations/paco_lvis_v1_val.json \
   --image-root data/paco/coco \
-  --require-image
-
-# Or build the list first, then download missing jpgs into that root (~2k files):
-bash scripts/build_paco_val_manifest.sh \
-  --ann data/paco/annotations/paco_lvis_v1_val.json \
-  --image-root data/paco/coco \
-  --download-missing
+  --require-image \
+  --n 100 \
+  --seed 42 \
+  --output data/paco/manifest_val_100.json
 ```
 
-`configs/config.yaml` already targets:
+`configs/config.yaml` targets:
 
 ```yaml
 data:
-  sample_dir: data/paco/coco          # must match --image-root above
-  manifest_path: data/paco/manifest_val_full.json
-output:
-  raw_captions: artifacts/captions/val_full/raw.json
-  filtered_captions: artifacts/captions/val_full/filtered.json
-  eval_clip: artifacts/eval/val_full/clip.json
-  eval_summary: artifacts/eval/val_full/summary.json
+  sample_dir: data/paco/coco
+  manifest_path: data/paco/manifest_val_100.json
 ```
 
-Sharded Qwen generation + merge + CLIP (submit node):
+Single-GPU caption job (submit node):
 
 ```bash
 ssh submit
 cd ~/Affordance-Benchmark-VLM
-bash scripts/condor_submit_pipeline_sharded.sh 10   # 10 shards; resume-safe
-# wait until all Process jobs finish
-bash scripts/merge_caption_shards.sh
-bash scripts/condor_submit_evaluate.sh
+bash scripts/condor_submit_pipeline.sh   # Qwen on the 100-image manifest
+# after finish:
+bash scripts/condor_submit_evaluate.sh   # CLIP on artifacts/captions/val_full/
 ```
-
-Pipeline CLI also supports `--shard-index`, `--num-shards`, `--limit`, `--no-resume`, `--save-every`.
-
-Manifest schema fields: `paco_category`, `part`, `attributes`, `source_split` (optional extras beyond `image_id` / `file` / `object`).
 
 ## Configuration
 
