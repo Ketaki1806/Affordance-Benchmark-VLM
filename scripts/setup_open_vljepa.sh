@@ -34,9 +34,12 @@ mkdir -p "${CKPT_DIR}"
 
 if [[ ! -f "${CKPT_DIR}/best.pt" ]]; then
   echo "Downloading checkpoint to ${CKPT_DIR}..."
-  if command -v huggingface-cli >/dev/null 2>&1; then
-    huggingface-cli download cun-bjy/open-vljepa best.pt --local-dir "${CKPT_DIR}"
-  else
+  if command -v hf >/dev/null 2>&1; then
+    hf download cun-bjy/open-vljepa best.pt --local-dir "${CKPT_DIR}"
+  elif command -v huggingface-cli >/dev/null 2>&1; then
+    huggingface-cli download cun-bjy/open-vljepa best.pt --local-dir "${CKPT_DIR}" || true
+  fi
+  if [[ ! -f "${CKPT_DIR}/best.pt" ]]; then
     python - <<PY
 from huggingface_hub import hf_hub_download
 from pathlib import Path
