@@ -29,15 +29,34 @@ if [[ -f "${DEST}" ]]; then
 fi
 
 if [[ -z "${HF_TOKEN:-}" ]]; then
-  # Prefer token file written by `hf auth login`
-  TOKEN_FILE="${HOME}/.cache/huggingface/token"
-  if [[ -f "${TOKEN_FILE}" ]]; then
-    HF_TOKEN="$(tr -d '[:space:]' < "${TOKEN_FILE}")"
-  fi
+  # Prefer token files written by `hf auth login` / huggingface_hub
+  for token_file in \
+    "${HF_HOME:-}/token" \
+    "${HOME}/.cache/huggingface/token" \
+    "${HOME}/.huggingface/token"
+  do
+    if [[ -n "${token_file}" && -f "${token_file}" ]]; then
+      HF_TOKEN="$(tr -d '[:space:]' < "${token_file}")"
+      break
+    fi
+  done
+fi
+
+# Fallback: ask huggingface_hub where the token is
+if [[ -z "${HF_TOKEN:-}" ]]; then
+  HF_TOKEN="$(
+    python - <<'PY' 2>/dev/null || true
+from huggingface_hub import get_token
+t = get_token()
+if t:
+    print(t)
+PY
+  )"
 fi
 
 if [[ -z "${HF_TOKEN:-}" ]]; then
   echo "ERROR: set HF_TOKEN or run: hf auth login" >&2
+  echo "  export HF_TOKEN=hf_..." >&2
   exit 1
 fi
 
