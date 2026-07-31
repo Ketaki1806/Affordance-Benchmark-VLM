@@ -63,7 +63,21 @@ class OpenVLJEPAScorer:
             self.device = torch.device("cuda")
         else:
             self.device = torch.device("cpu")
-        self.dtype = _resolve_torch_dtype(ocfg.get("dtype", "float16"))
+        # EmbeddingGemma activations do not support float16 (yields NaNs).
+        raw_dtype = ocfg.get("dtype", "bfloat16")
+        self.dtype = _resolve_torch_dtype(raw_dtype)
+        if self.dtype == torch.float16:
+            fallback = (
+                torch.bfloat16
+                if self.device.type == "cuda" and torch.cuda.is_bf16_supported()
+                else torch.float32
+            )
+            logger.warning(
+                "Open-VLJEPA dtype=float16 is unsafe with EmbeddingGemma "
+                "(NaN embeddings). Falling back to %s.",
+                fallback,
+            )
+            self.dtype = fallback
         self.checkpoint_path = resolve_path(ocfg["checkpoint"], PROJECT_ROOT)
         self.retrieval_prompt = ocfg.get("retrieval_prompt", "Describe the image.")
         self.model = None

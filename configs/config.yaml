@@ -36,7 +36,8 @@ models:
     repo_root: vendor/open-vljepa
     checkpoint: artifacts/checkpoints/open-vljepa/best.pt
     device: cuda
-    dtype: float16
+    # EmbeddingGemma does not support float16 (NaN embeddings). Use bf16 or fp32.
+    dtype: bfloat16
     retrieval_prompt: "Describe the image."
 
 captions:
