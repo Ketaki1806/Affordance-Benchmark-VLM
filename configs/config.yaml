@@ -34,7 +34,7 @@ models:
   open_vljepa:
     enabled: true
     repo_root: vendor/open-vljepa
-    checkpoint: artifacts/checkpoints/open-vljepa/best.pt
+    checkpoint: artifacts/checkpoints/open-vljepa/finetuned_affordance_ep5.pt
     device: cuda
     # EmbeddingGemma does not support float16 (NaN embeddings). Use bf16 or fp32.
     dtype: bfloat16
