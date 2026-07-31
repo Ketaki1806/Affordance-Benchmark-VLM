@@ -41,8 +41,8 @@ install_pytorch_pip() {
   pip install --no-cache-dir \
     --index-url https://download.pytorch.org/whl/cu121 \
     --extra-index-url https://pypi.org/simple \
-    "torch==2.5.1" \
-    "torchvision==0.20.1"
+    "torch==2.6.0" \
+    "torchvision==0.21.0"
 }
 
 if ! install_pytorch_micromamba; then
