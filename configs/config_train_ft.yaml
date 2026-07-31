@@ -1,0 +1,77 @@
+# Train-caption + Open-VLJEPA fine-tune config.
+# Does NOT replace configs/config.yaml (keep that pointed at N=100 eval).
+#
+# Usage:
+#   PYTHONPATH=src python src/pipeline.py --config configs/config_train_ft.yaml
+#   PYTHONPATH=src python src/finetune_open_vljepa.py --config configs/config_train_ft.yaml
+
+project_name: affordance_benchmark_train_ft
+
+data:
+  sample_dir: data/paco/coco
+  manifest_path: data/paco/manifest_train_500.json
+
+output:
+  raw_captions: artifacts/captions/train_500/raw.json
+  filtered_captions: artifacts/captions/train_500/filtered.json
+  eval_clip: artifacts/eval/val_full/clip.json
+  eval_siglip: artifacts/eval/val_full/siglip.json
+  eval_vljepa: artifacts/eval/val_full/open_vljepa.json
+  eval_yspace: artifacts/eval/val_full/yspace_caption_analysis.json
+  eval_summary: artifacts/eval/val_full/summary.json
+  # Fine-tuned checkpoint (predictor + y_encoder)
+  finetuned_vljepa: artifacts/checkpoints/open-vljepa/finetuned_affordance.pt
+
+models:
+  qwen_vl: Qwen/Qwen2.5-VL-7B-Instruct
+  clip: openai/clip-vit-large-patch14
+  clip_device: cuda
+  siglip: google/siglip-so400m-patch14-384
+  siglip_device: cuda
+  y_encoder: google/embeddinggemma-300m
+  y_encoder_device: cuda
+  qwen_dtype: float16
+  min_pixels: 200704
+  max_pixels: 1003520
+
+  open_vljepa:
+    enabled: true
+    repo_root: vendor/open-vljepa
+    checkpoint: artifacts/checkpoints/open-vljepa/best.pt
+    device: cuda
+    dtype: bfloat16
+    retrieval_prompt: "Describe the image."
+
+captions:
+  min_chars: 25
+  max_chars: 55
+  target_chars: 38
+  min_words: 5
+  max_words: 10
+  max_length_delta: 10
+  num_most_probable: 1
+  num_negative: 1
+  max_json_retries: 3
+  max_generation_retries: 3
+
+generation:
+  max_new_tokens: 512
+  temperature: 0.7
+  top_p: 0.9
+
+eval:
+  backends:
+    - open_vljepa
+
+finetune:
+  epochs: 5
+  batch_size: 1
+  grad_accum: 8
+  lr_predictor: 1.0e-5
+  lr_y_encoder: 5.0e-7
+  margin: 0.05
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  train_y_encoder: true
+  save_every_epochs: 1
+  log_every: 20

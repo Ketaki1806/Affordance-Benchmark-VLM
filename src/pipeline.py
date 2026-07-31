@@ -139,7 +139,7 @@ class AffordanceCaptionPipeline:
         num_shards: int = 1,
         save_every: int = 1,
     ) -> tuple[Path, Path]:
-        entries = load_manifest(manifest_path)
+        entries = load_manifest(manifest_path, config=self.config)
         if not entries:
             raise ValueError("Manifest contains no images")
 
@@ -213,6 +213,11 @@ class AffordanceCaptionPipeline:
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
+        "--config",
+        default=None,
+        help="Path to YAML config (default: configs/config.yaml)",
+    )
+    p.add_argument(
         "--manifest",
         default=None,
         help="Override config data.manifest_path",
@@ -251,7 +256,8 @@ def parse_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     args = parse_args()
-    pipeline = AffordanceCaptionPipeline()
+    cfg = load_config(args.config) if args.config else load_config()
+    pipeline = AffordanceCaptionPipeline(cfg)
     raw, filtered = pipeline.run(
         args.manifest,
         resume=not args.no_resume,

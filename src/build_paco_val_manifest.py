@@ -60,6 +60,16 @@ def select_one_per_image(
     return selected
 
 
+def load_exclude_image_ids(path: Path) -> set[str]:
+    """Image IDs from a prior manifest (e.g. eval N=100) to hold out of train."""
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    images = data.get("images", data)
+    if not isinstance(images, list):
+        raise ValueError(f"Exclude manifest must contain an 'images' list: {path}")
+    return {str(item["image_id"]) for item in images if "image_id" in item}
+
+
 def subsample_selected(
     selected: list[dict[str, Any]],
     n: int,
@@ -135,6 +145,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=42,
         help="RNG seed used when --n is set",
+    )
+    p.add_argument(
+        "--exclude-manifest",
+        type=Path,
+        default=None,
+        help="Drop image_ids present in this manifest (hold out eval set from train)",
     )
     p.add_argument(
         "--min-area",
@@ -240,6 +256,18 @@ def main() -> None:
         _diagnose_image_root(data, args.image_root)
         raise SystemExit(
             "No candidates found. Check --image-root / --require-image / --min-area."
+        )
+
+    if args.exclude_manifest is not None:
+        if not args.exclude_manifest.is_file():
+            raise SystemExit(f"Exclude manifest not found: {args.exclude_manifest}")
+        exclude_ids = load_exclude_image_ids(args.exclude_manifest)
+        before = len(selected)
+        selected = [item for item in selected if item["image_id"] not in exclude_ids]
+        print(
+            f"  excluded {before - len(selected)} images from "
+            f"{args.exclude_manifest.name} ({len(exclude_ids)} ids); "
+            f"{len(selected)} remain"
         )
 
     pool_size = len(selected)

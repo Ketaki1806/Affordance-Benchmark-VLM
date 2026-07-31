@@ -9,14 +9,17 @@ from typing import Any
 from config_loader import PROJECT_ROOT, load_config, resolve_path
 
 
-def load_manifest(manifest_path: Path | str | None = None) -> list[dict[str, Any]]:
+def load_manifest(
+    manifest_path: Path | str | None = None,
+    config: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     """
     Read data/sample/manifest.json (or PACO manifest with same schema).
     Resolves image paths relative to data.sample_dir in config.
     """
-    config = load_config()
+    cfg = config or load_config()
     path = resolve_path(
-        manifest_path or config["data"]["manifest_path"],
+        manifest_path or cfg["data"]["manifest_path"],
         PROJECT_ROOT,
     )
     with open(path, encoding="utf-8") as f:
@@ -26,7 +29,7 @@ def load_manifest(manifest_path: Path | str | None = None) -> list[dict[str, Any
         raise ValueError(f"Manifest must contain an 'images' list: {path}")
 
     entries: list[dict[str, Any]] = []
-    sample_dir = resolve_path(config["data"]["sample_dir"], PROJECT_ROOT)
+    sample_dir = resolve_path(cfg["data"]["sample_dir"], PROJECT_ROOT)
     for item in images:
         image_id = item["image_id"]
         file_name = item["file"]
