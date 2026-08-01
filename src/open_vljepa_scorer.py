@@ -1,16 +1,4 @@
-"""
-Open-VLJEPA scorer for stage 4 affordance evaluation.
-
-Uses the community Open-VLJEPA checkpoint (cun-bjy/open-vljepa) with frozen
-V-JEPA 2 + Llama predictor + EmbeddingGemma Y-encoder. Static images are fed
-as repeated-frame "videos" (same protocol as Stage A / 1-frame training).
-
-Requires:
-  1. Clone https://github.com/dion-jy/open-vljepa into vendor/open-vljepa
-     (or set models.open_vljepa.repo_root / OPENVLJEPA_ROOT)
-  2. Download best.pt via scripts/setup_open_vljepa.sh
-  3. Hugging Face access to meta-llama/Llama-3.2-1B and google/embeddinggemma-300m
-"""
+"""Open-VLJEPA image–caption scorer (vendor/open-vljepa + checkpoint)."""
 
 from __future__ import annotations
 
@@ -63,7 +51,7 @@ class OpenVLJEPAScorer:
             self.device = torch.device("cuda")
         else:
             self.device = torch.device("cpu")
-        # EmbeddingGemma activations do not support float16 (yields NaNs).
+        # EmbeddingGemma: avoid float16 (NaNs).
         raw_dtype = ocfg.get("dtype", "bfloat16")
         self.dtype = _resolve_torch_dtype(raw_dtype)
         if self.dtype == torch.float16:
@@ -72,11 +60,7 @@ class OpenVLJEPAScorer:
                 if self.device.type == "cuda" and torch.cuda.is_bf16_supported()
                 else torch.float32
             )
-            logger.warning(
-                "Open-VLJEPA dtype=float16 is unsafe with EmbeddingGemma "
-                "(NaN embeddings). Falling back to %s.",
-                fallback,
-            )
+            logger.warning("dtype=float16 unsupported here; using %s", fallback)
             self.dtype = fallback
         self.checkpoint_path = resolve_path(ocfg["checkpoint"], PROJECT_ROOT)
         self.retrieval_prompt = ocfg.get("retrieval_prompt", "Describe the image.")

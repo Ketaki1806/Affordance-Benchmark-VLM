@@ -1,9 +1,4 @@
-"""
-Stage 4 evaluation: frozen CLIP / SigLIP / Open-VLJEPA on affordance caption pairs.
-
-For each (most_probable, negative) pair, the backend with higher cosine
-similarity wins. Outputs per-pair results and aggregate metrics.
-"""
+"""Evaluate CLIP / SigLIP / Open-VLJEPA on (pos, neg) caption pairs."""
 
 from __future__ import annotations
 

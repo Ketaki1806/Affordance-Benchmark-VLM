@@ -1,87 +1,60 @@
 # Affordance Benchmark
 
-Physical affordance caption pipeline: **Qwen2.5-VL-7B** generates one positive and one hard-negative action caption per image; **CLIP** evaluates frozen zero-shot discrimination on those pairs. Based on [Probing Physical Affordance Understanding](Probing%20Physical%20Affordance%20Understanding.pdf).
+Qwen2.5-VL-7B writes one positive and one hard-negative affordance caption per image; CLIP / SigLIP / Open-VLJEPA score which caption fits the image better.
 
-Draft report notes and results log: [docs/project_notes.md](docs/project_notes.md) (update as experiments complete).
+Notes and numbers: [docs/project_notes.md](docs/project_notes.md).
 
-## Pipeline stages
+## Pipeline
 
-1. **Generate**: Qwen2.5-VL-7B reads each image + object label, outputs JSON captions
-2. **Validate**: enforce length/word limits from config
-3. **Save**: same validated pairs go to `raw.json` and `filtered.json`
+1. Generate captions (Qwen)
+2. Validate length / JSON
+3. Save `raw.json` + `filtered.json`
+4. Evaluate on `filtered.json`
 
-Outputs:
-- `artifacts/captions/raw.json`
-- `artifacts/captions/filtered.json` (input to stage 4 eval)
-
-## Stage 4 evaluation (CLIP, SigLIP, optional Open-VLJEPA)
-
-After the caption pipeline completes, run evaluation on `filtered.json`:
+## Eval
 
 ```bash
-# SigLIP (interim while Open-VLJEPA Llama access is pending):
-# configs/config.yaml → eval.backends: [siglip]
+# set eval.backends in configs/config.yaml (clip | siglip | open_vljepa)
 bash scripts/condor_submit_evaluate.sh
 
-# Y-space caption confusability (EmbeddingGemma; no images):
+# text-only pos/neg closeness (EmbeddingGemma)
 bash scripts/run_yspace_analysis.sh
 
-# Optional Open-VLJEPA only after Llama HF access is Accepted:
+# Open-VLJEPA setup (needs HF access to Llama + EmbeddingGemma)
 bash scripts/setup_open_vljepa.sh
-# set models.open_vljepa.enabled: true and eval.backends: [open_vljepa]
-huggingface-cli login
-bash scripts/condor_submit_evaluate.sh
+hf auth login
 ```
 
-| Backend | What it measures |
-|---------|------------------|
-| **CLIP** | Binary affordance choice (pos vs neg similarity) |
-| **SigLIP** | Same binary task with SigLIP embeddings |
-| **Y-space** | Text-only cos(pos, neg) via EmbeddingGemma |
-| **Open-VLJEPA** | Same binary task with VL-JEPA (needs gated Llama) |
+| Backend | Role |
+|---------|------|
+| CLIP | pos vs neg cosine |
+| SigLIP | same task |
+| Y-space | cos(pos, neg) text only |
+| Open-VLJEPA | same task (gated deps) |
 
-Outputs:
-- `artifacts/eval/val_full/clip.json`
-- `artifacts/eval/val_full/siglip.json`
-- `artifacts/eval/val_full/yspace_caption_analysis.json`
-- `artifacts/eval/val_full/open_vljepa.json` (when enabled)
-- `artifacts/eval/val_full/summary.json`
-
-### Analyze CLIP results (local)
+Outputs under `artifacts/eval/val_full/`.
 
 ```bash
 pip install matplotlib
-export PYTHONPATH=src   # or $env:PYTHONPATH="src" on PowerShell
+export PYTHONPATH=src
 python src/analyze_clip_results.py
 ```
 
-Prints a text summary, writes `artifacts/eval/clip_analysis.json`, and saves plots under `artifacts/eval/figures/` (PNG if matplotlib is installed, otherwise SVG).
-
-## Project layout
+## Layout
 
 ```
-configs/              # config.yaml, prompt templates
-data/sample/          # pilot images + manifest.json
-src/                  # pipeline, models, validators, CLIP filter
-scripts/              # run + HTCondor cluster helpers
-requirements-gpu.txt  # Python deps (PyTorch via micromamba on cluster)
+configs/   config.yaml, train/eval overlays
+data/      sample + PACO manifests
+src/       pipeline, scorers, FT
+scripts/   local + HTCondor
 ```
 
-## Sample data setup
+## Sample data
 
-1. Place images in `data/sample/` and list them in `data/sample/manifest.json` (`file` + `object` label per row)
-2. The bundled pilot set uses 10 PNGs (`bottle.png`, `bowl.png`, …); see the manifest for the full mapping
-3. Run the pipeline (GPU required for Qwen-VL)
+1. Images in `data/sample/` listed in `manifest.json`
+2. Caption style: `[Verb] the [part] to [purpose].`
 
-Caption format (matches document examples):
-
-```
-[Verb] the [visible part] to [short purpose/state].
-```
-
-Example: `"Twist the cap to open the bottle."` (33 chars)
-
-## Local setup (Windows)
+## Local (Windows)
 
 ```powershell
 .\scripts\setup_env.ps1
@@ -90,25 +63,21 @@ pip install -r requirements-gpu.txt
 .\scripts\run_pipeline.ps1
 ```
 
-## LST cluster (HTCondor)
+## LST cluster
 
-| Node | Purpose |
-|------|---------|
-| `login.lst.uni-saarland.de` | Edit files, env setup |
-| `ssh submit` | Submit HTCondor jobs |
-
-### Setup
+| Node | Use |
+|------|-----|
+| `login.lst.uni-saarland.de` | edit / setup |
+| `ssh submit` | Condor |
 
 ```bash
 cd ~/Affordance-Benchmark-VLM
 bash scripts/install_micromamba.sh
 bash scripts/setup.sh
-bash scripts/condor_submit_install.sh   # on submit node
+bash scripts/condor_submit_install.sh   # on submit
 ```
 
-### Run affordance caption pipeline (GPU)
-
-Qwen2.5-VL-7B needs ~16–22 GB VRAM; submit file requests **32 GB** RAM + 1 GPU.
+Pipeline (GPU, ~32 GB RAM request):
 
 ```bash
 ssh submit
@@ -117,103 +86,61 @@ bash scripts/condor_submit_pipeline.sh
 tail -f artifacts/logs/pipeline.<ClusterId>.out
 ```
 
-### Check HTCondor resource fit
-
-```bash
-bash scripts/condor_check_resources.sh
-```
-
-### Each session
-
 ```bash
 source scripts/activate_env.sh
+bash scripts/condor_check_resources.sh
+# reset: bash scripts/cluster_cleanup.sh --all
 ```
 
-### Reset cluster install
+## PACO-LVIS
 
-```bash
-bash scripts/cluster_cleanup.sh --all
-```
+Val has ~2410 images / ~21k part segments. We use **one preferred part per image**. Seminar scale-up: **N=100** subsample (`manifest_val_100.json`). Human filter on pilot N=20 only.
 
-## PACO-LVIS (cluster)
-
-### Scale choice
-
-PACO-LVIS **val** has ~2,410 images and ~20.9k part segments. Enumerating every part instance (~21k Qwen jobs) is out of seminar scope. The **full-val** run uses **one preferred interaction part per unique image** (≤ ~2,410 pairs): `cap`/`lid`/`handle`/… ranking from `build_paco_pilot_manifest.py`. Captions are **model-generated** (Qwen → rule validation → CLIP); human filter stays on the N=20 pilot only. Open-VLJEPA is left disabled for the full-val CLIP run (same `filtered.json` can be scored later).
-
-### Annotations + images
-
-1. Download annotations (login node; `wget` may be missing — use `curl`):
+Annotations:
 
 ```bash
 mkdir -p data/paco/annotations data/paco/images
 cd data/paco/annotations
 curl -L -o paco_lvis_v1.zip https://dl.fbaipublicfiles.com/paco/annotations/paco_lvis_v1.zip
-unzip paco_lvis_v1.zip   # or: python -c "import zipfile; zipfile.ZipFile('paco_lvis_v1.zip').extractall('.')"
+unzip paco_lvis_v1.zip
 ```
 
-2. Point `--image-root` at COCO 2017 images (`val2017/` / `train2017/`). PACO-LVIS reuses those files.
+Images: COCO 2017 under `--image-root` (`train2017` / `val2017`).
 
-### Pilot (N≈20, human-check)
+Pilot:
 
 ```bash
-cd ~/Affordance-Benchmark-VLM
-source scripts/activate_env.sh
 bash scripts/build_paco_pilot_manifest.sh \
   --ann data/paco/annotations/paco_lvis_v1_val.json \
   --image-root /path/to/coco \
-  --n 20 \
-  --require-image \
-  --copy-images
+  --n 20 --require-image --copy-images
 ```
 
-Then set `data.sample_dir` / `data.manifest_path` to the pilot paths, run `condor_submit_pipeline.sh`, human-edit captions, evaluate.
-
-### Full val / scale-up (one preferred part / image)
-
-PACO-LVIS val preferred-part pool is ~1k+ images with local COCO files. For seminar compute (single GPU), use a **category-diverse N=100** subsample and state that limit in the report:
+N=100:
 
 ```bash
 bash scripts/build_paco_val_manifest.sh \
   --ann data/paco/annotations/paco_lvis_v1_val.json \
   --image-root data/paco/coco \
-  --require-image \
-  --n 100 \
-  --seed 42 \
+  --require-image --n 100 --seed 42 \
   --output data/paco/manifest_val_100.json
 ```
 
-`configs/config.yaml` targets:
-
-```yaml
-data:
-  sample_dir: data/paco/coco
-  manifest_path: data/paco/manifest_val_100.json
-```
-
-Single-GPU caption job (submit node):
-
 ```bash
-ssh submit
-cd ~/Affordance-Benchmark-VLM
-bash scripts/condor_submit_pipeline.sh   # Qwen on the 100-image manifest
-# after finish:
-bash scripts/condor_submit_evaluate.sh   # CLIP on artifacts/captions/val_full/
+bash scripts/condor_submit_pipeline.sh
+bash scripts/condor_submit_evaluate.sh
 ```
 
-## Configuration
+Train FT captions / ranking FT: `configs/config_train_ft.yaml`, `condor_submit_train_captions.sh`, `condor_submit_finetune_clip.sh`, `condor_submit_finetune_open_vljepa.sh`.
 
-Edit [configs/config.yaml](configs/config.yaml):
+Human FT eval: `bash scripts/condor_submit_evaluate_human.sh`.
 
-| Key | Default | Purpose |
-|-----|---------|---------|
-| `captions.min_chars` / `max_chars` | 25 / 55 | Caption length limits (pilot uses 25 min) |
-| `captions.num_most_probable` | 1 | Positive captions per image (pilot) |
-| `captions.num_negative` | 1 | Negative captions per image (pilot) |
-| `models.clip_device` | `cuda` | CLIP device for stage 4 eval (full-val) |
+## Config
 
-## Notes
+See [configs/config.yaml](configs/config.yaml) for caption length, backends, checkpoints.
 
-- Login node `/tmp` is full; scripts use `~/tmp` on nethome
-- Do not use `request_runtime` in HTCondor submit files on LST
-- Use `should_transfer_files = NO` (nethome is shared across nodes)
+## Cluster notes
+
+- Prefer `~/tmp` (login `/tmp` often full)
+- No `request_runtime` on LST
+- `should_transfer_files = NO` (nethome shared)

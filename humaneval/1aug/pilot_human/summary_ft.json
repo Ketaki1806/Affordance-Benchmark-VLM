@@ -1,0 +1,26 @@
+{
+  "source": "/nethome/kahadnurkar/Affordance-Benchmark-VLM/humaneval/26jul/human_filtered.json",
+  "num_images": 20,
+  "results": {
+    "clip": {
+      "path": "/nethome/kahadnurkar/Affordance-Benchmark-VLM/artifacts/eval/pilot_human/clip_ft.json",
+      "summary": {
+        "num_pairs": 20,
+        "binary_accuracy": 0.9,
+        "mean_confidence_gap": 0.07831674325279891,
+        "num_correct": 18,
+        "num_wrong": 2
+      }
+    },
+    "open_vljepa": {
+      "path": "/nethome/kahadnurkar/Affordance-Benchmark-VLM/artifacts/eval/pilot_human/open_vljepa_ft.json",
+      "summary": {
+        "num_pairs": 20,
+        "binary_accuracy": 0.55,
+        "mean_confidence_gap": 0.08483645245432854,
+        "num_correct": 11,
+        "num_wrong": 9
+      }
+    }
+  }
+}

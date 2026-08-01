@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
-# Build ~500-image train manifest excluding the N=100 eval set.
-#
-# Usage (on cluster, env active):
-#   bash scripts/build_paco_train_manifest.sh \
-#     --image-root data/paco/coco \
-#     --require-image
+# Train manifest: N=500, exclude manifest_val_100.json
+#   bash scripts/build_paco_train_manifest.sh --image-root data/paco/coco --require-image
 
 set -euo pipefail
 
@@ -25,7 +21,3 @@ python "${PROJECT_ROOT}/src/build_paco_val_manifest.py" \
   --output "${PROJECT_ROOT}/data/paco/manifest_train_500.json" \
   --source-split train_holdout \
   "$@"
-
-echo ""
-echo "Next: caption with"
-echo "  bash scripts/condor_submit_train_captions.sh"

@@ -1,22 +1,9 @@
-"""
-CIDEr scores for affordance caption ablations.
+"""CIDEr for caption pairs (neg vs pos; Qwen vs human on pilot).
 
-Without separate human reference captions for N=100, primary metric is
-**hard-negative closeness**: CIDEr(negative | refs=[positive]).
-Higher ⇒ negative is n-gram-closer to positive (harder lexical confound).
-
-Human-eval ablations (N=20 pilot):
-  1. neg_vs_pos on raw Qwen captions
-  2. neg_vs_pos on human-filtered captions
-  3. qwen_pos_vs_human_pos  (hypothesis=Qwen pos, ref=human pos)
-  4. qwen_neg_vs_human_neg
-
-Usage:
   PYTHONPATH=src python src/compute_cider.py \\
     --eval-json humaneval/30jul/clip.json \\
     --raw-captions humaneval/26jul/filtered.json \\
-    --human-captions humaneval/26jul/human_filtered.json \\
-    --output artifacts/eval/cider_ablations.json
+    --human-captions humaneval/26jul/human_filtered.json
 """
 
 from __future__ import annotations
@@ -36,7 +23,6 @@ _WORD_RE = re.compile(r"[a-z0-9]+(?:'[a-z]+)?")
 
 
 def _tokenize(text: str) -> str:
-    """Whitespace PTB-ish fallback (no Java/Stanford dependency)."""
     return " ".join(_WORD_RE.findall(text.lower()))
 
 
@@ -146,7 +132,7 @@ def score_neg_vs_pos(pairs: list[dict[str, str]]) -> dict[str, Any]:
     ]
     return {
         "name": "neg_vs_pos",
-        "description": "CIDEr(negative | ref=positive); higher = lexically closer hard negative",
+        "description": "CIDEr(neg | ref=pos)",
         "num_pairs": len(pairs),
         "mean_cider": mean,
         "pairs": rows,
@@ -320,7 +306,6 @@ def main() -> None:
             "No inputs. Provide --eval-json and/or --raw-captions + --human-captions."
         )
 
-    # Compact summary for the report table
     report["summary"] = {
         name: {"num_pairs": block["num_pairs"], "mean_cider": block["mean_cider"]}
         for name, block in report["ablations"].items()

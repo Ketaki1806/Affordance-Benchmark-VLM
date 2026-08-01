@@ -1,15 +1,6 @@
-"""
-Y-space caption confusability analysis (EmbeddingGemma).
+"""EmbeddingGemma cos(pos, neg) for caption pairs (no images).
 
-Embeds positive/negative affordance captions with the same family of text
-encoder Open-VLJEPA uses as Y (default: google/embeddinggemma-300m).
-No images — answers how close hard-negative pairs are in text space.
-
-Usage:
-  export PYTHONPATH=src
-  python src/analyze_caption_yspace.py
-  python src/analyze_caption_yspace.py --captions artifacts/captions/val_full/filtered.json \\
-      --clip-json artifacts/eval/val_full/clip.json
+  PYTHONPATH=src python src/analyze_caption_yspace.py
 """
 
 from __future__ import annotations

@@ -1,9 +1,5 @@
-# Train-caption + Open-VLJEPA fine-tune config.
-# Does NOT replace configs/config.yaml (keep that pointed at N=100 eval).
-#
-# Usage:
-#   PYTHONPATH=src python src/pipeline.py --config configs/config_train_ft.yaml
-#   PYTHONPATH=src python src/finetune_open_vljepa.py --config configs/config_train_ft.yaml
+# Train captions + FT (separate from configs/config.yaml).
+# pipeline / finetune_*: --config configs/config_train_ft.yaml
 
 project_name: affordance_benchmark_train_ft
 
@@ -19,7 +15,6 @@ output:
   eval_vljepa: artifacts/eval/val_full/open_vljepa.json
   eval_yspace: artifacts/eval/val_full/yspace_caption_analysis.json
   eval_summary: artifacts/eval/val_full/summary.json
-  # Fine-tuned checkpoint (predictor + y_encoder)
   finetuned_vljepa: artifacts/checkpoints/open-vljepa/finetuned_affordance.pt
   finetuned_clip: artifacts/checkpoints/clip/finetuned_affordance.pt
 
@@ -77,7 +72,7 @@ finetune:
   save_every_epochs: 1
   log_every: 20
 
-# CLIP ranking FT (same train_500 pairs / same margin as VL-JEPA).
+# CLIP ranking FT (train_500)
 finetune_clip:
   epochs: 5
   batch_size: 4

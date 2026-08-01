@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
-# Submit CLIP affordance fine-tune to Condor (GPU).
-#
-# Prerequisites:
-#   artifacts/captions/train_500/filtered.json
-#
-# Usage (on submit):
-#   bash scripts/condor_submit_finetune_clip.sh
-
+# Condor: CLIP fine-tune (needs artifacts/captions/train_500/filtered.json).
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -16,7 +9,6 @@ FILTERED="${PROJECT_ROOT}/artifacts/captions/train_500/filtered.json"
 
 if [[ ! -f "${FILTERED}" ]]; then
   echo "ERROR: missing ${FILTERED}"
-  echo "Run train captioning first: bash scripts/condor_submit_train_captions.sh"
   exit 1
 fi
 
@@ -44,9 +36,4 @@ EOF
 
 echo "Submitting CLIP fine-tune from: ${PROJECT_ROOT}"
 condor_submit "${SUB_FILE}"
-echo "Monitor: tail -f artifacts/logs/finetune_clip.<ClusterId>.out"
-echo "After FT, set in configs/config.yaml:"
-echo "  models.clip_checkpoint: artifacts/checkpoints/clip/finetuned_affordance_ep5.pt"
-echo "  output.eval_clip: artifacts/eval/val_full/clip_ft.json"
-echo "  eval.backends: [clip]"
-echo "then: bash scripts/condor_submit_evaluate.sh"
+echo "tail -f artifacts/logs/finetune_clip.<ClusterId>.out"

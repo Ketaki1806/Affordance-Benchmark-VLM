@@ -1,17 +1,7 @@
-"""
-Fine-tune CLIP with pairwise ranking on affordance caption pairs.
+"""CLIP ranking fine-tune on affordance pairs.
 
-Same loss as Open-VLJEPA FT: relu(margin - cos(img, pos) + cos(img, neg)).
-Trains the full CLIP model (ViT-L/14) lightly on the train_500 captions.
-
-Usage:
+Loss: relu(margin - cos(img, pos) + cos(img, neg)).
   PYTHONPATH=src python src/finetune_clip.py --config configs/config_train_ft.yaml
-
-Then set in configs/config.yaml:
-  models.clip_checkpoint: artifacts/checkpoints/clip/finetuned_affordance_ep5.pt
-  output.eval_clip: artifacts/eval/val_full/clip_ft.json
-  eval.backends: [clip]
-and run: bash scripts/condor_submit_evaluate.sh
 """
 
 from __future__ import annotations
@@ -80,7 +70,6 @@ class AffordancePairDataset(Dataset):
 
 
 def _clip_image_embeds(model: CLIPModel, pixel_values: torch.Tensor) -> torch.Tensor:
-    """Image tower → pooled → visual projection (CLIP shared space)."""
     vision_outputs = model.vision_model(pixel_values=pixel_values)
     pooled = vision_outputs.pooler_output
     if pooled is None:
@@ -94,7 +83,6 @@ def _clip_text_embeds(
     attention_mask: torch.Tensor | None = None,
     **_: Any,
 ) -> torch.Tensor:
-    """Text tower → pooled → text projection (CLIP shared space)."""
     text_outputs = model.text_model(
         input_ids=input_ids,
         attention_mask=attention_mask,

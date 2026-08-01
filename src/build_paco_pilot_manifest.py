@@ -527,11 +527,6 @@ def main() -> None:
         attrs = ",".join(item.get("attributes") or []) or "-"
         print(f"  {item['paco_category']:24s} part={part:16s} attrs={attrs}")
 
-    print("\nNext: point configs/config.yaml at the pilot:")
-    sample_dir = args.sample_dir if args.copy_images else (args.image_root or "data/paco/images")
-    print(f"  data.sample_dir: {sample_dir}")
-    print(f"  data.manifest_path: {args.output}")
-
 
 if __name__ == "__main__":
     main()

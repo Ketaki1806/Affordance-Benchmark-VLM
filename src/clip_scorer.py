@@ -1,9 +1,4 @@
-"""
-CLIP zero-shot scorer for stage 4 evaluation.
-
-Encodes image and text into a shared embedding space; higher cosine similarity
-means the caption is more compatible with the image (used in stage 2 filtering).
-"""
+"""CLIP image–caption cosine scorer."""
 
 import torch
 from PIL import Image
@@ -19,9 +14,7 @@ class CLIPScorer:
     def __init__(self, config: dict | None = None):
         self.config = config or load_config()
         self.model_name = self.config["models"]["clip"]
-        # Optional fine-tuned weights (from finetune_clip.py).
         self.checkpoint = self.config["models"].get("clip_checkpoint")
-        # CPU by default so Qwen-VL can keep the GPU; CLIP on 10 images is fast on CPU.
         device_pref = self.config["models"].get("clip_device", "cpu")
         if device_pref == "cuda" and torch.cuda.is_available():
             self.device = torch.device("cuda")
@@ -42,7 +35,7 @@ class CLIPScorer:
             ckpt_path = resolve_path(str(self.checkpoint), PROJECT_ROOT)
             if not ckpt_path.is_file():
                 raise FileNotFoundError(f"CLIP checkpoint not found: {ckpt_path}")
-            logger.info("Loading fine-tuned CLIP weights: %s", ckpt_path)
+            logger.info("Loading CLIP weights: %s", ckpt_path)
             ckpt = torch.load(ckpt_path, map_location=self.device, weights_only=False)
             state = ckpt["model_state_dict"] if isinstance(ckpt, dict) and "model_state_dict" in ckpt else ckpt
             self.model.load_state_dict(state, strict=True)

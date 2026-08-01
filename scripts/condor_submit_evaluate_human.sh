@@ -1,15 +1,5 @@
 #!/usr/bin/env bash
-# Submit human-pilot FT evaluation (CLIP-FT + Open-VLJEPA-FT on N=20).
-#
-# Prerequisites on cluster:
-#   - humaneval/26jul/human_filtered.json
-#   - artifacts/checkpoints/clip/finetuned_affordance_ep5.pt
-#   - artifacts/checkpoints/open-vljepa/finetuned_affordance_ep5.pt
-#   - pilot images under paths in human_filtered.json
-#
-# Usage (on submit):
-#   bash scripts/condor_submit_evaluate_human.sh
-
+# Condor: FT CLIP + VLJEPA on human pilot captions (N=20).
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -19,8 +9,6 @@ HUMAN_CAPS="${PROJECT_ROOT}/humaneval/26jul/human_filtered.json"
 
 if [[ ! -f "${HUMAN_CAPS}" ]]; then
   echo "ERROR: missing ${HUMAN_CAPS}"
-  echo "From your PC:"
-  echo "  scp -r humaneval/26jul kahadnurkar@login:.../Affordance-Benchmark-VLM/humaneval/"
   exit 1
 fi
 
@@ -48,8 +36,4 @@ EOF
 
 echo "Submitting human-pilot FT eval from: ${PROJECT_ROOT}"
 condor_submit "${SUB_FILE}"
-echo "Monitor: tail -f artifacts/logs/evaluate_human.<ClusterId>.out"
-echo "Outputs:"
-echo "  artifacts/eval/pilot_human/clip_ft.json"
-echo "  artifacts/eval/pilot_human/open_vljepa_ft.json"
-echo "  artifacts/eval/pilot_human/summary_ft.json"
+echo "tail -f artifacts/logs/evaluate_human.<ClusterId>.out"

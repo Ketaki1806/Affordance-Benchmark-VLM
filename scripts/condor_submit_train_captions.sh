@@ -34,4 +34,4 @@ EOF
 
 echo "Submitting train caption job from: ${PROJECT_ROOT}"
 condor_submit "${SUB_FILE}"
-echo "Monitor: tail -f artifacts/logs/train_captions.<ClusterId>.out"
+echo "tail -f artifacts/logs/train_captions.<ClusterId>.out"

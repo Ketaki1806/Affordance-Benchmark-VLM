@@ -315,13 +315,6 @@ def main() -> None:
         f.write("\n")
 
     print(f"Wrote {len(manifest['images'])} entries -> {args.output}")
-    print("\nNext: point configs/config.yaml at the full-val set:")
-    sample_dir = (
-        args.sample_dir if args.copy_images else (args.image_root or "data/paco/images")
-    )
-    print(f"  data.sample_dir: {sample_dir}")
-    print(f"  data.manifest_path: {args.output}")
-    print("  output.*: artifacts/captions/val_full/ and artifacts/eval/val_full/")
 
 
 if __name__ == "__main__":

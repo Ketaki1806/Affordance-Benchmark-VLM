@@ -1,10 +1,4 @@
-# Eval fine-tuned CLIP + Open-VLJEPA on the human-filtered PACO pilot (N=20).
-# Does not change configs/config.yaml (N=100 scale-up).
-#
-# Usage:
-#   bash scripts/condor_submit_evaluate_human.sh
-# or:
-#   PYTHONPATH=src python src/evaluate.py --config configs/config_eval_human.yaml
+# Human pilot FT eval (N=20). See scripts/condor_submit_evaluate_human.sh
 
 project_name: affordance_benchmark_eval_human
 

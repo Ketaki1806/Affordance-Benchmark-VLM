@@ -1,15 +1,7 @@
-"""
-Fine-tune Open-VLJEPA with pairwise ranking on affordance caption pairs.
+"""Open-VLJEPA ranking fine-tune (freeze X-encoder).
 
-Freezes V-JEPA X-encoder; trains predictor (+ optional Y-encoder at lower LR).
 Loss: relu(margin - cos(pred, y_pos) + cos(pred, y_neg)).
-
-Usage:
-  PYTHONPATH=src python src/finetune_open_vljepa.py \\
-    --config configs/config_train_ft.yaml
-
-After training, point configs/config.yaml models.open_vljepa.checkpoint at the
-saved finetuned_affordance.pt and re-run evaluation on the held-out N=100 set.
+  PYTHONPATH=src python src/finetune_open_vljepa.py --config configs/config_train_ft.yaml
 """
 
 from __future__ import annotations

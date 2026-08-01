@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
-# Submit Open-VLJEPA affordance fine-tune to Condor (GPU).
-#
-# Prerequisites:
-#   artifacts/captions/train_500/filtered.json
-#
-# Usage (on submit):
-#   bash scripts/condor_submit_finetune_open_vljepa.sh
-
+# Condor: Open-VLJEPA fine-tune (needs train_500/filtered.json).
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -16,7 +9,6 @@ FILTERED="${PROJECT_ROOT}/artifacts/captions/train_500/filtered.json"
 
 if [[ ! -f "${FILTERED}" ]]; then
   echo "ERROR: missing ${FILTERED}"
-  echo "Run train captioning first: bash scripts/condor_submit_train_captions.sh"
   exit 1
 fi
 
@@ -44,7 +36,4 @@ EOF
 
 echo "Submitting Open-VLJEPA fine-tune from: ${PROJECT_ROOT}"
 condor_submit "${SUB_FILE}"
-echo "Monitor: tail -f artifacts/logs/finetune_vljepa.<ClusterId>.out"
-echo "After: point config.yaml open_vljepa.checkpoint at"
-echo "  artifacts/checkpoints/open-vljepa/finetuned_affordance.pt"
-echo "then: bash scripts/condor_submit_evaluate.sh"
+echo "tail -f artifacts/logs/finetune_vljepa.<ClusterId>.out"

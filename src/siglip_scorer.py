@@ -1,8 +1,4 @@
-"""
-SigLIP zero-shot scorer for stage 4 evaluation.
-
-Same binary image–caption cosine protocol as CLIP, using google/siglip-*.
-"""
+"""SigLIP image–caption cosine scorer."""
 
 from __future__ import annotations
 
