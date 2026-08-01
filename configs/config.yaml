@@ -13,7 +13,7 @@ data:
 output:
   raw_captions: artifacts/captions/val_full/raw.json
   filtered_captions: artifacts/captions/val_full/filtered.json
-  eval_clip: artifacts/eval/val_full/clip.json
+  eval_clip: artifacts/eval/val_full/clip_ft.json
   eval_siglip: artifacts/eval/val_full/siglip.json
   eval_vljepa: artifacts/eval/val_full/open_vljepa.json
   eval_yspace: artifacts/eval/val_full/yspace_caption_analysis.json
@@ -23,8 +23,8 @@ models:
   qwen_vl: Qwen/Qwen2.5-VL-7B-Instruct
   clip: openai/clip-vit-large-patch14
   clip_device: cuda
-  # After CLIP FT, set e.g. artifacts/checkpoints/clip/finetuned_affordance_ep5.pt
-  # clip_checkpoint: artifacts/checkpoints/clip/finetuned_affordance_ep5.pt
+  # Fine-tuned CLIP (same train_500 ranking FT as VL-JEPA).
+  clip_checkpoint: artifacts/checkpoints/clip/finetuned_affordance_ep5.pt
   siglip: google/siglip-so400m-patch14-384
   siglip_device: cuda
   y_encoder: google/embeddinggemma-300m
@@ -61,4 +61,4 @@ generation:
 
 eval:
   backends:
-    - open_vljepa
+    - clip
