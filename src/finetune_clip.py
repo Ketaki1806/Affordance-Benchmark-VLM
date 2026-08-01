@@ -79,6 +79,32 @@ class AffordancePairDataset(Dataset):
         return self.pairs[idx]
 
 
+def _clip_image_embeds(model: CLIPModel, pixel_values: torch.Tensor) -> torch.Tensor:
+    """Return L2-ready image embeddings (handles older/newer transformers APIs)."""
+    feats = model.get_image_features(pixel_values=pixel_values)
+    if torch.is_tensor(feats):
+        return feats
+    # Some transformers builds return vision outputs; project pooled features.
+    pooled = getattr(feats, "pooler_output", None)
+    if pooled is None and hasattr(feats, "last_hidden_state"):
+        pooled = feats.last_hidden_state[:, 0, :]
+    if pooled is None:
+        raise TypeError(f"Unexpected get_image_features type: {type(feats)}")
+    return model.visual_projection(pooled)
+
+
+def _clip_text_embeds(model: CLIPModel, **text_inputs) -> torch.Tensor:
+    feats = model.get_text_features(**text_inputs)
+    if torch.is_tensor(feats):
+        return feats
+    pooled = getattr(feats, "pooler_output", None)
+    if pooled is None and hasattr(feats, "last_hidden_state"):
+        pooled = feats.last_hidden_state[:, 0, :]
+    if pooled is None:
+        raise TypeError(f"Unexpected get_text_features type: {type(feats)}")
+    return model.text_projection(pooled)
+
+
 def train(config: dict[str, Any], *, seed: int = 42) -> Path:
     ft_cfg = config.get("finetune_clip", config.get("finetune", {}))
     filtered_path = resolve_path(config["output"]["filtered_captions"], PROJECT_ROOT)
@@ -172,9 +198,9 @@ def train(config: dict[str, Any], *, seed: int = 42) -> Path:
             neg_inputs = {k: v.to(device) for k, v in neg_inputs.items()}
 
             with torch.amp.autocast(device.type, dtype=amp_dtype, enabled=use_amp):
-                image_embeds = model.get_image_features(**img_inputs)
-                pos_embeds = model.get_text_features(**pos_inputs)
-                neg_embeds = model.get_text_features(**neg_inputs)
+                image_embeds = _clip_image_embeds(model, img_inputs["pixel_values"])
+                pos_embeds = _clip_text_embeds(model, **pos_inputs)
+                neg_embeds = _clip_text_embeds(model, **neg_inputs)
 
                 image_embeds = F.normalize(image_embeds.float(), dim=-1)
                 pos_embeds = F.normalize(pos_embeds.float(), dim=-1)
