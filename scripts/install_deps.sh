@@ -60,6 +60,7 @@ pip install --no-cache-dir \
   "accelerate>=0.34.0" \
   "huggingface_hub>=0.26.0" \
   "sentencepiece>=0.2.0" \
+  "protobuf>=4.25.0" \
   "safetensors>=0.4.0" \
   "pillow>=10.0.0" \
   "pyyaml>=6.0" \
