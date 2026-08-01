@@ -71,10 +71,10 @@
       "object": "jar",
       "affordance_tiers": {
         "most_probable": [
-          "Open the jar to access the contents."
+          "Twist the lid to open the jar."
         ],
         "negative": [
-          "Close the jar to store the contents."
+          "Twist the lid to refill the jar."
         ]
       }
     },
@@ -110,10 +110,10 @@
       "object": "scissors",
       "affordance_tiers": {
         "most_probable": [
-          "Cut the package with the blade to open."
+          "Cut the package with the blade to open it."
         ],
         "negative": [
-          "Close the scissors to uncut the package."
+          "Cut the package with the blade to sharpen pencils."
         ]
       }
     },
@@ -175,10 +175,10 @@
       "object": "box",
       "affordance_tiers": {
         "most_probable": [
-          "Lift the containers to eat the food."
+          "Open the lunch box to eat the food."
         ],
         "negative": [
-          "Close the empty lunch box."
+          "Open the lunch box to store dirty dishes."
         ]
       }
     },
@@ -201,10 +201,10 @@
       "object": "microwave oven",
       "affordance_tiers": {
         "most_probable": [
-          "Open the microwave door to access food inside."
+          "Open the microwave door to heat the food."
         ],
         "negative": [
-          "Close the microwave door to lock it."
+          "Open the microwave door to wash the dishes."
         ]
       }
     },
@@ -214,10 +214,10 @@
       "object": "mirror",
       "affordance_tiers": {
         "most_probable": [
-          "Hold the camera to take a photo."
+          "Look in the mirror to check appearance."
         ],
         "negative": [
-          "Hang the camera to secure it."
+          "Look in the mirror to hang a picture."
         ]
       }
     },

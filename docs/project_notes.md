@@ -58,7 +58,7 @@ This project:
 | Y-space | `analyze_caption_yspace.py` | text-only EmbeddingGemma |
 | Open-VLJEPA | `open_vljepa_scorer.py` | ZS + FT |
 
-Negatives = wrong affordance for the visible part/state (not alternate valid goals).
+Negatives = wrong affordance for the visible part/state (not alternate valid goals). Hard negatives follow SugarCrepe’s principle of fluent, human-validated distractors, specialized to affordance/purpose swaps on PACO parts rather than generic attribute/object edits.
 
 ---
 
@@ -126,7 +126,7 @@ Llama-3.2 access accepted 2026-07-30. Checkpoint: `best.pt` (ZS), `finetuned_aff
 
 **RQ:** Can VL embeddings pick the valid affordance caption over a hard negative?
 
-**Method sketch:** `[Verb] the [part] to [purpose]`; score image–caption cosine; human review on pilot.
+**Method sketch:** `[Verb] the [part] to [purpose]`; score image–caption cosine; human review on pilot (SugarCrepe-style hard negatives; see §2).
 
 **Open questions:**
 - failure mix (spatial / attribute / fluency)?
