@@ -1,0 +1,820 @@
+{
+  "summary": {
+    "num_pairs": 100,
+    "mean_cosine": 0.8147378861904144,
+    "median_cosine": 0.8091225326061249,
+    "min_cosine": 0.6535908579826355,
+    "max_cosine": 0.9770255088806152,
+    "frac_cosine_gt_0_8": 0.55,
+    "frac_cosine_gt_0_9": 0.15,
+    "model": "google/embeddinggemma-300m",
+    "source": "/nethome/kahadnurkar/Affordance-Benchmark-VLM/artifacts/captions/val_full/filtered.json",
+    "clip_join": {
+      "num_joined": 100,
+      "mean_cosine_when_clip_correct": 0.8074883175274682,
+      "mean_cosine_when_clip_wrong": 0.8270817463462418
+    }
+  },
+  "pairs": [
+    {
+      "image_id": "lvis_2453",
+      "object": "bench",
+      "positive": "Sit on the bench to rest.",
+      "negative": "Stand on the bench to climb.",
+      "cosine_pos_neg": 0.7697740793228149,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_3464",
+      "object": "jar",
+      "positive": "Twist the lid to open the jar.",
+      "negative": "Pull the lid to close the jar.",
+      "cosine_pos_neg": 0.9052503108978271,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_5641",
+      "object": "hat",
+      "positive": "Wear the visor to protect from sun.",
+      "negative": "Put on the visor to hold the phone.",
+      "cosine_pos_neg": 0.8083625435829163,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_11701",
+      "object": "pan (for cooking)",
+      "positive": "Hold the handle to stir the pot",
+      "negative": "Lift the handle to pour the contents",
+      "cosine_pos_neg": 0.8188128471374512,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_12803",
+      "object": "glass (drink container)",
+      "positive": "Wash the glass to clean it.",
+      "negative": "Fill the glass with water to drink.",
+      "cosine_pos_neg": 0.7868567705154419,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_17273",
+      "object": "newspaper",
+      "positive": "Read the text to understand the news article.",
+      "negative": "Fold the paper to store the newspaper.",
+      "cosine_pos_neg": 0.6535908579826355,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_28981",
+      "object": "bowl",
+      "positive": "Eat the ramen from the bowl.",
+      "negative": "Pour water into the bowl.",
+      "cosine_pos_neg": 0.7061519622802734,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_29755",
+      "object": "bench",
+      "positive": "Sit on the bench to rest.",
+      "negative": "Stand on the bench to climb.",
+      "cosine_pos_neg": 0.7697740793228149,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_52835",
+      "object": "box",
+      "positive": "Close the side to secure the container.",
+      "negative": "Open the side to access the contents.",
+      "cosine_pos_neg": 0.7304661273956299,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_54870",
+      "object": "knife",
+      "positive": "Cut the sandwich with the knife handle.",
+      "negative": "Peel the sandwich with the knife handle.",
+      "cosine_pos_neg": 0.9127511978149414,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_55294",
+      "object": "bench",
+      "positive": "Sit on the bench to rest.",
+      "negative": "Pull the bench to move it.",
+      "cosine_pos_neg": 0.7504039406776428,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_56205",
+      "object": "bicycle",
+      "positive": "Pedal the bicycle to ride it.",
+      "negative": "Pedal the bicycle to lift it.",
+      "cosine_pos_neg": 0.8795052170753479,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_58184",
+      "object": "mug",
+      "positive": "Hold the handle to lift the mug.",
+      "negative": "Twist the handle to pour the mug.",
+      "cosine_pos_neg": 0.8836494088172913,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_58816",
+      "object": "ladder",
+      "positive": "Step up the step to access the area above.",
+      "negative": "Step up the step to clean the floor.",
+      "cosine_pos_neg": 0.7617541551589966,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_75183",
+      "object": "mirror",
+      "positive": "Hang the mirror on the wall.",
+      "negative": "Hang the mirror on the ceiling.",
+      "cosine_pos_neg": 0.9445128440856934,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_75576",
+      "object": "slipper (footwear)",
+      "positive": "Wear the slipper to protect your feet.",
+      "negative": "Put on the slipper to dry your hands.",
+      "cosine_pos_neg": 0.8402641415596008,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_80714",
+      "object": "laptop computer",
+      "positive": "Point at the screen to explain content.",
+      "negative": "Tap the screen to turn off the laptop.",
+      "cosine_pos_neg": 0.6758370399475098,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_81841",
+      "object": "chair",
+      "positive": "Squat under the table to inspect the chair's leg",
+      "negative": "Sit on the chair's leg to lift the table",
+      "cosine_pos_neg": 0.8346692323684692,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_87525",
+      "object": "sweater",
+      "positive": "Wear the sweater for warmth.",
+      "negative": "Pull the sweater to open the drawer.",
+      "cosine_pos_neg": 0.779887318611145,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_88609",
+      "object": "tray",
+      "positive": "Place the tray on the table.",
+      "negative": "Pick up the tray from the table.",
+      "cosine_pos_neg": 0.849963903427124,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_89549",
+      "object": "knife",
+      "positive": "Cut the hamburger with the knife.",
+      "negative": "Twist the knife to sharpen it.",
+      "cosine_pos_neg": 0.7646042108535767,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_95679",
+      "object": "box",
+      "positive": "Lift the lid to access the food inside.",
+      "negative": "Push down the lid to close the container.",
+      "cosine_pos_neg": 0.7747776508331299,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_105113",
+      "object": "tray",
+      "positive": "Place the tray to display cupcakes.",
+      "negative": "Remove the tray from the shelf.",
+      "cosine_pos_neg": 0.7124666571617126,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_114519",
+      "object": "laptop computer",
+      "positive": "View the screen for information",
+      "negative": "Press the screen to power on",
+      "cosine_pos_neg": 0.7083108425140381,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_126014",
+      "object": "towel",
+      "positive": "Hang the towel on the rack.",
+      "negative": "Wash the towel in the sink.",
+      "cosine_pos_neg": 0.827140212059021,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_130666",
+      "object": "laptop computer",
+      "positive": "Slide the touchpad to navigate the laptop screen.",
+      "negative": "Swipe the touchpad to adjust the laptop volume.",
+      "cosine_pos_neg": 0.8030550479888916,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_135976",
+      "object": "telephone",
+      "positive": "Press the button to make a call.",
+      "negative": "Pull the button to answer a call.",
+      "cosine_pos_neg": 0.8764294385910034,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_146015",
+      "object": "mug",
+      "positive": "Grab the handle to lift the mug.",
+      "negative": "Press the handle to pour from the mug.",
+      "cosine_pos_neg": 0.872150182723999,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_146047",
+      "object": "bucket",
+      "positive": "Pour the apples out of the bucket.",
+      "negative": "Push the apples into the bucket.",
+      "cosine_pos_neg": 0.9275867938995361,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_152294",
+      "object": "chair",
+      "positive": "Squat with legs for better balance during play.",
+      "negative": "Stretch the legs to warm up before play.",
+      "cosine_pos_neg": 0.8098825216293335,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_153136",
+      "object": "bench",
+      "positive": "Sit on the bench to rest.",
+      "negative": "Pull the leg to move the bench.",
+      "cosine_pos_neg": 0.7734706401824951,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_156986",
+      "object": "trash can",
+      "positive": "Pick up the trash can to dispose of waste.",
+      "negative": "Push down the trash can to fill it with water.",
+      "cosine_pos_neg": 0.8077015280723572,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_160615",
+      "object": "bowl",
+      "positive": "Ladle the soup from the bowl.",
+      "negative": "Pour the soup into another bowl.",
+      "cosine_pos_neg": 0.8432220220565796,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_160890",
+      "object": "sweater",
+      "positive": "Pull the cuff to adjust the sweater.",
+      "negative": "Stretch the cuff to make it wider.",
+      "cosine_pos_neg": 0.7777782678604126,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_174892",
+      "object": "box",
+      "positive": "Close the lid to secure the container.",
+      "negative": "Open the lid to access the contents.",
+      "cosine_pos_neg": 0.7980095744132996,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_203756",
+      "object": "cup",
+      "positive": "Drink from the rim to enjoy the beverage.",
+      "negative": "Pour from the rim to refill the cup.",
+      "cosine_pos_neg": 0.8212154507637024,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_207072",
+      "object": "vase",
+      "positive": "Pour water into the vase to fill it up.",
+      "negative": "Fill the vase with sand to stabilize it.",
+      "cosine_pos_neg": 0.7986689805984497,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_208022",
+      "object": "sweater",
+      "positive": "Wear the sweater to stay warm.",
+      "negative": "Pull the hem to adjust the sweater.",
+      "cosine_pos_neg": 0.7283176779747009,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_210374",
+      "object": "table",
+      "positive": "Place the phone on the table to rest.",
+      "negative": "Put the water bottle on the table to drink.",
+      "cosine_pos_neg": 0.7463679313659668,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_213693",
+      "object": "laptop computer",
+      "positive": "Use the back for input/output connection.",
+      "negative": "Open the back to fix the laptop.",
+      "cosine_pos_neg": 0.6991928815841675,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_222056",
+      "object": "jar",
+      "positive": "Twist the lid to open the jar.",
+      "negative": "Twist the lid to close the jar.",
+      "cosine_pos_neg": 0.9276909232139587,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_224437",
+      "object": "cellular telephone",
+      "positive": "Touch the bezel to unlock the phone.",
+      "negative": "Swipe the bezel to turn off the phone.",
+      "cosine_pos_neg": 0.8230409622192383,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_228419",
+      "object": "plastic bag",
+      "positive": "Place the cookie sandwich on the paper",
+      "negative": "Open the plastic bag to reveal the cookie sandwich",
+      "cosine_pos_neg": 0.7635287642478943,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_237944",
+      "object": "dog",
+      "positive": "Brush the teeth with the toothbrush.",
+      "negative": "Wash the face with the toothbrush.",
+      "cosine_pos_neg": 0.8724517226219177,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_239466",
+      "object": "helmet",
+      "positive": "Wear the helmet for protection.",
+      "negative": "Put on the helmet to rest.",
+      "cosine_pos_neg": 0.8037363290786743,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_240506",
+      "object": "tray",
+      "positive": "Place the tray to serve the pizza.",
+      "negative": "Move the tray to hide the pizza.",
+      "cosine_pos_neg": 0.8353943228721619,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_241785",
+      "object": "dog",
+      "positive": "Wiggle the tail to signal happiness.",
+      "negative": "Scratch the belly to clean the fur.",
+      "cosine_pos_neg": 0.6824311017990112,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_243824",
+      "object": "basket",
+      "positive": "Hold the rim to lift the basket.",
+      "negative": "Pull the rim to pour from the basket.",
+      "cosine_pos_neg": 0.8620410561561584,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_254431",
+      "object": "basket",
+      "positive": "Arrange the fruits in the basket.",
+      "negative": "Stack the vegetables in the basket.",
+      "cosine_pos_neg": 0.8180674910545349,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_259833",
+      "object": "bottle",
+      "positive": "Open the bottle to pour liquid.",
+      "negative": "Refill the bottle with water.",
+      "cosine_pos_neg": 0.7893156409263611,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_264628",
+      "object": "towel",
+      "positive": "Hang the towel to dry it.",
+      "negative": "Dry the towel with the towel.",
+      "cosine_pos_neg": 0.9139060974121094,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_265274",
+      "object": "microwave oven",
+      "positive": "Open the microwave door to access food inside.",
+      "negative": "Close the microwave door to lock it.",
+      "cosine_pos_neg": 0.772174596786499,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_273317",
+      "object": "scarf",
+      "positive": "Wear the scarf over the head.",
+      "negative": "Wrap the scarf around the neck.",
+      "cosine_pos_neg": 0.8963935375213623,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_276265",
+      "object": "crate",
+      "positive": "Stack the crates together to organize items.",
+      "negative": "Open the crate to remove bananas.",
+      "cosine_pos_neg": 0.7365133762359619,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_285742",
+      "object": "car (automobile)",
+      "positive": "Open the car door to enter.",
+      "negative": "Close the car door to secure the vehicle.",
+      "cosine_pos_neg": 0.7837188243865967,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_289662",
+      "object": "glass (drink container)",
+      "positive": "Pour the drink from the glass into a cup.",
+      "negative": "Pour the drink from the glass onto the table.",
+      "cosine_pos_neg": 0.8390570878982544,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_305422",
+      "object": "mouse (computer equipment)",
+      "positive": "Click the Razer logo to control the mouse.",
+      "negative": "Drag the Razer logo to move the mouse.",
+      "cosine_pos_neg": 0.8476105332374573,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_313494",
+      "object": "car (automobile)",
+      "positive": "Drive the car to move it forward.",
+      "negative": "Pull the car's door to open it.",
+      "cosine_pos_neg": 0.7841942310333252,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_330728",
+      "object": "chair",
+      "positive": "Push the leg to sit the cat down.",
+      "negative": "Pull the leg to sit the cat up.",
+      "cosine_pos_neg": 0.9481624960899353,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_331885",
+      "object": "shoe",
+      "positive": "Wear the shoe to protect your foot.",
+      "negative": "Wear the shoe to clean your foot.",
+      "cosine_pos_neg": 0.8775533437728882,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_340471",
+      "object": "bicycle",
+      "positive": "Park the bicycle under the rack.",
+      "negative": "Push the stem to unlock the bicycle.",
+      "cosine_pos_neg": 0.7141681909561157,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_345411",
+      "object": "newspaper",
+      "positive": "Read the text to understand the menu item details.",
+      "negative": "Write the text to create a new menu.",
+      "cosine_pos_neg": 0.7394610643386841,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_346560",
+      "object": "blender",
+      "positive": "Pull the handle to blend the mixture.",
+      "negative": "Push the handle to blend the mixture.",
+      "cosine_pos_neg": 0.9770255088806152,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_347483",
+      "object": "lamp",
+      "positive": "Turn off the lamp by pressing the button.",
+      "negative": "Turn on the lamp by pressing the button.",
+      "cosine_pos_neg": 0.908608078956604,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_350481",
+      "object": "book",
+      "positive": "Read the page for information.",
+      "negative": "Write on the page with a pen.",
+      "cosine_pos_neg": 0.7026180028915405,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_357620",
+      "object": "plate",
+      "positive": "Eat the donut from the plate.",
+      "negative": "Pour water from the plate.",
+      "cosine_pos_neg": 0.7229996919631958,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_358237",
+      "object": "bicycle",
+      "positive": "Ride the bicycle to explore the city.",
+      "negative": "Squeeze the wheel to inflate the tire.",
+      "cosine_pos_neg": 0.6794964671134949,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_377464",
+      "object": "bench",
+      "positive": "Sit on the bench to relax.",
+      "negative": "Pull the bench to move it.",
+      "cosine_pos_neg": 0.7451472878456116,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_379987",
+      "object": "carton",
+      "positive": "Open the carton to access eggs.",
+      "negative": "Close the carton to store eggs.",
+      "cosine_pos_neg": 0.8218410015106201,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_395975",
+      "object": "fan",
+      "positive": "Rotate the blade to adjust the fan speed.",
+      "negative": "Move the blade to change the room temperature.",
+      "cosine_pos_neg": 0.8050122261047363,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_406555",
+      "object": "guitar",
+      "positive": "Play the guitar by strumming the strings.",
+      "negative": "Strum the guitar by pulling the strings.",
+      "cosine_pos_neg": 0.8879841566085815,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_407734",
+      "object": "bowl",
+      "positive": "Eat the food from the bowl.",
+      "negative": "Pour the water into the bowl.",
+      "cosine_pos_neg": 0.7662359476089478,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_417729",
+      "object": "clock",
+      "positive": "Move the hand to show the time.",
+      "negative": "Rotate the hand to change the date.",
+      "cosine_pos_neg": 0.8282263278961182,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_422959",
+      "object": "pillow",
+      "positive": "Press the button to activate the lamp.",
+      "negative": "Turn the switch to turn off the lamp.",
+      "cosine_pos_neg": 0.7893235683441162,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_429679",
+      "object": "spoon",
+      "positive": "Scoop the food with the spoon handle.",
+      "negative": "Scoop the food with the spoon spoon.",
+      "cosine_pos_neg": 0.9475873708724976,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_438922",
+      "object": "spoon",
+      "positive": "Ladle the soup with the spoon handle.",
+      "negative": "Scoop the soup with the spoon handle.",
+      "cosine_pos_neg": 0.9472227692604065,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_446014",
+      "object": "soap",
+      "positive": "Twist the cap to open the soap bottle.",
+      "negative": "Pull the cap to close the soap bottle.",
+      "cosine_pos_neg": 0.8889684081077576,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_446271",
+      "object": "box",
+      "positive": "Open the lid to eat the pizza.",
+      "negative": "Close the lid to keep the pizza fresh.",
+      "cosine_pos_neg": 0.8277652263641357,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_448439",
+      "object": "ladder",
+      "positive": "Hold the phone to listen to music.",
+      "negative": "Press the phone to turn it off.",
+      "cosine_pos_neg": 0.7186439037322998,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_456451",
+      "object": "sweater",
+      "positive": "Wear the sweater to keep warm.",
+      "negative": "Wash the sweater in the washing machine.",
+      "cosine_pos_neg": 0.7886607050895691,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_461998",
+      "object": "television set",
+      "positive": "Press the button to turn on the television set.",
+      "negative": "Push the button to turn off the television set.",
+      "cosine_pos_neg": 0.9052305221557617,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_465552",
+      "object": "can",
+      "positive": "Twist the lid to close the can.",
+      "negative": "Pull the lid to open the can.",
+      "cosine_pos_neg": 0.8975566625595093,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_465786",
+      "object": "mirror",
+      "positive": "Hang the towel on the frame.",
+      "negative": "Open the toilet seat with the frame.",
+      "cosine_pos_neg": 0.795580267906189,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_479836",
+      "object": "table",
+      "positive": "Place the tablecloth under the container.",
+      "negative": "Attach the tablecloth to the container.",
+      "cosine_pos_neg": 0.9252795577049255,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_479944",
+      "object": "plastic bag",
+      "positive": "Hold the handle to carry the bag.",
+      "negative": "Hold the handle to empty the bag.",
+      "cosine_pos_neg": 0.9239628314971924,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_486018",
+      "object": "microwave oven",
+      "positive": "Open the microwave by pulling the door handle.",
+      "negative": "Close the microwave by pulling the door handle.",
+      "cosine_pos_neg": 0.881527304649353,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_497616",
+      "object": "stool",
+      "positive": "Stabilize the stool by placing your foot on the leg.",
+      "negative": "Push the stool to move it.",
+      "cosine_pos_neg": 0.7741332650184631,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_499242",
+      "object": "laptop computer",
+      "positive": "Look at the logo on the laptop screen.",
+      "negative": "Press the logo on the laptop screen.",
+      "cosine_pos_neg": 0.8944737911224365,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_501118",
+      "object": "dog",
+      "positive": "Sniff the ground with the head.",
+      "negative": "Chew the leash with the head.",
+      "cosine_pos_neg": 0.782245397567749,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_504248",
+      "object": "basket",
+      "positive": "Put the basket to hold items.",
+      "negative": "Pull the basket to open the container.",
+      "cosine_pos_neg": 0.8201791644096375,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_511549",
+      "object": "table",
+      "positive": "Place the plate on the table.",
+      "negative": "Turn the table to reveal the drawer.",
+      "cosine_pos_neg": 0.6869043707847595,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_512070",
+      "object": "cellular telephone",
+      "positive": "Press the button to answer the call.",
+      "negative": "Pull the button to turn off the phone.",
+      "cosine_pos_neg": 0.7546842098236084,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_517101",
+      "object": "kettle",
+      "positive": "Pour from the lid if you need to",
+      "negative": "Pull the lid off the kettle",
+      "cosine_pos_neg": 0.7793221473693848,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_522778",
+      "object": "drill",
+      "positive": "Drill the handle to fix the parking meter.",
+      "negative": "Drill the handle to remove the parking meter.",
+      "cosine_pos_neg": 0.9194696545600891,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_522992",
+      "object": "handbag",
+      "positive": "Hold the handle to carry the handbag.",
+      "negative": "Press the handle to unlock the lock.",
+      "cosine_pos_neg": 0.7621413469314575,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_526204",
+      "object": "chair",
+      "positive": "Grab the armrest to sit down.",
+      "negative": "Pull the armrest to stand up.",
+      "cosine_pos_neg": 0.8876523375511169,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_533706",
+      "object": "cellular telephone",
+      "positive": "Press the button to dial the phone number.",
+      "negative": "Push the button to turn on the phone.",
+      "cosine_pos_neg": 0.830184817314148,
+      "clip_correct": false
+    },
+    {
+      "image_id": "lvis_543468",
+      "object": "bottle",
+      "positive": "Water the flowers in the bottle.",
+      "negative": "Pour water into the bottle.",
+      "cosine_pos_neg": 0.8681662678718567,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_546846",
+      "object": "scissors",
+      "positive": "Cut the straws with the scissors.",
+      "negative": "Cut the fabric with the scissors.",
+      "cosine_pos_neg": 0.8443619012832642,
+      "clip_correct": true
+    },
+    {
+      "image_id": "lvis_570242",
+      "object": "remote control",
+      "positive": "Press the button to change channels.",
+      "negative": "Pull the button to change volume.",
+      "cosine_pos_neg": 0.8241679668426514,
+      "clip_correct": true
+    }
+  ]
+}

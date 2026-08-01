@@ -7,7 +7,7 @@
       "summary": {
         "num_pairs": 20,
         "binary_accuracy": 0.9,
-        "mean_confidence_gap": 0.07831674325279891,
+        "mean_confidence_gap": 0.06985243144445122,
         "num_correct": 18,
         "num_wrong": 2
       }
@@ -16,10 +16,10 @@
       "path": "/nethome/kahadnurkar/Affordance-Benchmark-VLM/artifacts/eval/pilot_human/open_vljepa_ft.json",
       "summary": {
         "num_pairs": 20,
-        "binary_accuracy": 0.55,
-        "mean_confidence_gap": 0.08483645245432854,
-        "num_correct": 11,
-        "num_wrong": 9
+        "binary_accuracy": 0.45,
+        "mean_confidence_gap": 0.07653512358665467,
+        "num_correct": 9,
+        "num_wrong": 11
       }
     }
   }
