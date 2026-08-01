@@ -80,28 +80,28 @@ class AffordancePairDataset(Dataset):
 
 
 def _clip_image_embeds(model: CLIPModel, pixel_values: torch.Tensor) -> torch.Tensor:
-    """Return L2-ready image embeddings (handles older/newer transformers APIs)."""
-    feats = model.get_image_features(pixel_values=pixel_values)
-    if torch.is_tensor(feats):
-        return feats
-    # Some transformers builds return vision outputs; project pooled features.
-    pooled = getattr(feats, "pooler_output", None)
-    if pooled is None and hasattr(feats, "last_hidden_state"):
-        pooled = feats.last_hidden_state[:, 0, :]
+    """Image tower → pooled → visual projection (CLIP shared space)."""
+    vision_outputs = model.vision_model(pixel_values=pixel_values)
+    pooled = vision_outputs.pooler_output
     if pooled is None:
-        raise TypeError(f"Unexpected get_image_features type: {type(feats)}")
+        pooled = vision_outputs.last_hidden_state[:, 0, :]
     return model.visual_projection(pooled)
 
 
-def _clip_text_embeds(model: CLIPModel, **text_inputs) -> torch.Tensor:
-    feats = model.get_text_features(**text_inputs)
-    if torch.is_tensor(feats):
-        return feats
-    pooled = getattr(feats, "pooler_output", None)
-    if pooled is None and hasattr(feats, "last_hidden_state"):
-        pooled = feats.last_hidden_state[:, 0, :]
+def _clip_text_embeds(
+    model: CLIPModel,
+    input_ids: torch.Tensor,
+    attention_mask: torch.Tensor | None = None,
+    **_: Any,
+) -> torch.Tensor:
+    """Text tower → pooled → text projection (CLIP shared space)."""
+    text_outputs = model.text_model(
+        input_ids=input_ids,
+        attention_mask=attention_mask,
+    )
+    pooled = text_outputs.pooler_output
     if pooled is None:
-        raise TypeError(f"Unexpected get_text_features type: {type(feats)}")
+        pooled = text_outputs.last_hidden_state[:, 0, :]
     return model.text_projection(pooled)
 
 
@@ -199,8 +199,16 @@ def train(config: dict[str, Any], *, seed: int = 42) -> Path:
 
             with torch.amp.autocast(device.type, dtype=amp_dtype, enabled=use_amp):
                 image_embeds = _clip_image_embeds(model, img_inputs["pixel_values"])
-                pos_embeds = _clip_text_embeds(model, **pos_inputs)
-                neg_embeds = _clip_text_embeds(model, **neg_inputs)
+                pos_embeds = _clip_text_embeds(
+                    model,
+                    input_ids=pos_inputs["input_ids"],
+                    attention_mask=pos_inputs.get("attention_mask"),
+                )
+                neg_embeds = _clip_text_embeds(
+                    model,
+                    input_ids=neg_inputs["input_ids"],
+                    attention_mask=neg_inputs.get("attention_mask"),
+                )
 
                 image_embeds = F.normalize(image_embeds.float(), dim=-1)
                 pos_embeds = F.normalize(pos_embeds.float(), dim=-1)
