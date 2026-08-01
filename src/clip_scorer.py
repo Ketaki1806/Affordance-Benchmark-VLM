@@ -19,6 +19,8 @@ class CLIPScorer:
     def __init__(self, config: dict | None = None):
         self.config = config or load_config()
         self.model_name = self.config["models"]["clip"]
+        # Optional fine-tuned weights (from finetune_clip.py).
+        self.checkpoint = self.config["models"].get("clip_checkpoint")
         # CPU by default so Qwen-VL can keep the GPU; CLIP on 10 images is fast on CPU.
         device_pref = self.config["models"].get("clip_device", "cpu")
         if device_pref == "cuda" and torch.cuda.is_available():
@@ -32,6 +34,18 @@ class CLIPScorer:
         logger.info("Loading CLIP model: %s on %s", self.model_name, self.device)
         self.model = CLIPModel.from_pretrained(self.model_name).to(self.device)
         self.processor = CLIPProcessor.from_pretrained(self.model_name)
+        if self.checkpoint:
+            from pathlib import Path
+
+            from config_loader import PROJECT_ROOT, resolve_path
+
+            ckpt_path = resolve_path(str(self.checkpoint), PROJECT_ROOT)
+            if not ckpt_path.is_file():
+                raise FileNotFoundError(f"CLIP checkpoint not found: {ckpt_path}")
+            logger.info("Loading fine-tuned CLIP weights: %s", ckpt_path)
+            ckpt = torch.load(ckpt_path, map_location=self.device, weights_only=False)
+            state = ckpt["model_state_dict"] if isinstance(ckpt, dict) and "model_state_dict" in ckpt else ckpt
+            self.model.load_state_dict(state, strict=True)
         self.model.eval()
 
     def is_loaded(self) -> bool:
