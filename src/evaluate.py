@@ -193,5 +193,30 @@ def run_evaluation(
 
 
 if __name__ == "__main__":
-    summary = run_evaluation()
+    import argparse
+
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument(
+        "--config",
+        default=None,
+        help="Path to YAML config (default: configs/config.yaml)",
+    )
+    p.add_argument(
+        "--filtered",
+        default=None,
+        help="Override output.filtered_captions",
+    )
+    p.add_argument(
+        "--backends",
+        nargs="+",
+        default=None,
+        help="Override eval.backends (e.g. clip open_vljepa)",
+    )
+    args = p.parse_args()
+    cfg = load_config(args.config) if args.config else None
+    summary = run_evaluation(
+        filtered_path=args.filtered,
+        backends=args.backends,
+        config=cfg,
+    )
     print(json.dumps(summary, indent=2))
