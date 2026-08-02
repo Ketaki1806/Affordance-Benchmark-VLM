@@ -156,6 +156,13 @@ VLJEPA-FT’s pilot misses stay attribute-heavy; SugarCrepe-style edits made tha
 - One fluency figure to justify human check / why raw Qwen N=100 is an upper-noise bound.
 - Caveat: tags are contrast-based heuristics; re-spot-check figure captions against the image before camera-ready.
 
+### 3.5 Occlusion attribution (planned / running)
+
+Protocol: text leave-one-out + 3×3 image blackout on Δ = s_pos − s_neg.  
+Pairs: 8 (§3 figures + shared wrongs). Backends: CLIP, SigLIP, Open-VLJEPA ZS.  
+Outputs: `artifacts/attribution/`. Spec: `docs/superpowers/specs/2026-08-02-occlusion-attribution-design.md`.  
+Cluster: `bash scripts/condor_submit_attribution.sh`
+
 ---
 
 ## 4. Results log
