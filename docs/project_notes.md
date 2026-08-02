@@ -156,12 +156,30 @@ VLJEPA-FT’s pilot misses stay attribute-heavy; SugarCrepe-style edits made tha
 - One fluency figure to justify human check / why raw Qwen N=100 is an upper-noise bound.
 - Caveat: tags are contrast-based heuristics; re-spot-check figure captions against the image before camera-ready.
 
-### 3.5 Occlusion attribution (planned / running)
+### 3.5 Occlusion attribution (XAI)
 
 Protocol: text leave-one-out + 3×3 image blackout on Δ = s_pos − s_neg.  
 Pairs: 8 (§3 figures + shared wrongs). Backends: CLIP, SigLIP, Open-VLJEPA ZS.  
-Outputs: `artifacts/attribution/`. Spec: `docs/superpowers/specs/2026-08-02-occlusion-attribution-design.md`.  
-Cluster: `bash scripts/condor_submit_attribution.sh`
+Outputs: `artifacts/attribution/` (+ `xai_vision_vs_text.json`).
+
+**Vision vs text peak sensitivity** (`vision_share = max|grid| / (max|grid|+max|text|)`):
+
+| Backend | Mean vision share | Mean max\|text\| | Mean max\|grid\| |
+|---------|------------------:|-----------------:|-----------------:|
+| CLIP | 0.19 | 0.045 | 0.011 |
+| SigLIP | 0.14 | 0.045 | 0.007 |
+| Open-VLJEPA | 0.26 | 0.128 | 0.049 |
+
+**Do vision regions guide toward the correct caption?** On wrong pairs, fraction of grid mass with Δ-drop &gt; 0 (supports the *current wrong* preference): CLIP **0.60**, SigLIP **0.41**, Open-VLJEPA **0.42**.
+
+XAI takeaway: binary affordance choice is **mostly text-explained**; coarse vision regions are a minority driver (CLIP/SigLIP especially). Open-VLJEPA uses vision more on some scenes (bag/tray/blender) but still usually picks the neg. Not Grad-CAM — occlusion proxy only.
+
+### 3.6 Word–region grounding (CLIP / SigLIP)
+
+Slide-style **word heatmaps** (not B-cos LLaVA): for each content word in pos/neg, map similarity to image patches (CLIP ViT) or 7×7 window crops (SigLIP).  
+Outputs: `artifacts/grounding/<backend>/<image_id>/{positive,negative}_<word>.png`  
+Cluster: `bash scripts/condor_submit_grounding.sh`  
+Use for figure panels (mirror wall/ceiling, microwave open/handle, bag carry/empty). Claim: dual-encoder patch–word similarity, not generative token grounding.
 
 ---
 

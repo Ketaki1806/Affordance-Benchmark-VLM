@@ -15,3 +15,5 @@ __pycache__/
 .ipynb_checkpoints/
 humaneval/images
 
+docs/superpowers/plans/2026-08-02-occlusion-attribution.md
+docs/superpowers/specs/2026-08-02-occlusion-attribution-design.md
