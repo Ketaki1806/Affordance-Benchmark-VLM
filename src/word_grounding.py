@@ -94,6 +94,20 @@ class PatchGrounder:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
+    @staticmethod
+    def _as_embed_tensor(emb: Any, projection: Any | None = None) -> torch.Tensor:
+        """Normalize HF quirks: tensor vs BaseModelOutputWithPooling."""
+        if torch.is_tensor(emb):
+            return emb
+        pooled = getattr(emb, "pooler_output", None)
+        if pooled is None and isinstance(emb, (tuple, list)):
+            pooled = emb[1] if len(emb) > 1 else emb[0]
+        if pooled is None:
+            raise TypeError(f"Cannot extract embedding from {type(emb)}")
+        if projection is not None:
+            pooled = projection(pooled)
+        return pooled
+
     @torch.no_grad()
     def word_embed(self, word: str) -> torch.Tensor:
         assert self.model is not None and self.processor is not None
@@ -102,8 +116,16 @@ class PatchGrounder:
             inputs = self.processor(
                 text=[prompt], return_tensors="pt", padding=True, truncation=True
             )
-            inputs = {k: v.to(self.device) for k, v in inputs.items()}
-            emb = self.model.get_text_features(**inputs)
+            input_ids = inputs["input_ids"].to(self.device)
+            attention_mask = inputs.get("attention_mask")
+            if attention_mask is not None:
+                attention_mask = attention_mask.to(self.device)
+            # Explicit path: some transformers builds return model outputs from helpers.
+            text_out = self.model.text_model(
+                input_ids=input_ids, attention_mask=attention_mask
+            )
+            pooled = text_out.pooler_output
+            emb = self.model.text_projection(pooled)
         else:
             inputs = self.processor(
                 text=[prompt],
@@ -111,12 +133,13 @@ class PatchGrounder:
                 padding="max_length",
                 truncation=True,
             )
-            inputs = {
+            text_kwargs = {
                 k: v.to(self.device)
                 for k, v in inputs.items()
                 if k in ("input_ids", "attention_mask")
             }
-            emb = self.model.get_text_features(**inputs)
+            emb = self.model.get_text_features(**text_kwargs)
+            emb = self._as_embed_tensor(emb)
         return F.normalize(emb.float(), dim=-1).squeeze(0)
 
     @torch.no_grad()
@@ -157,6 +180,12 @@ class PatchGrounder:
                 inputs = self.processor(images=crop, return_tensors="pt")
                 pixel = inputs["pixel_values"].to(self.device)
                 img_emb = self.model.get_image_features(pixel_values=pixel)
+                img_emb = self._as_embed_tensor(
+                    img_emb,
+                    projection=getattr(self.model, "visual_projection", None)
+                    if not torch.is_tensor(img_emb)
+                    else None,
+                )
                 img_emb = F.normalize(img_emb.float(), dim=-1).squeeze(0)
                 heat[r, c] = float((img_emb @ text).item())
         return heat
