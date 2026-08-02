@@ -34,25 +34,92 @@ from logger import get_logger
 logger = get_logger(__name__)
 
 
-def heatmap_overlay(image: Image.Image, heat, *, alpha: float = 0.45) -> Image.Image:
+def _jet_rgb(norm):
+    """Approximate jet colormap for values in [0, 1] (numpy array)."""
     import numpy as np
+
+    x = np.clip(norm, 0.0, 1.0)
+    r = np.clip(1.5 - np.abs(4.0 * x - 3.0), 0.0, 1.0)
+    g = np.clip(1.5 - np.abs(4.0 * x - 2.0), 0.0, 1.0)
+    b = np.clip(1.5 - np.abs(4.0 * x - 1.0), 0.0, 1.0)
+    # mute the low end so background stays readable
+    return np.stack([r, g, b], axis=-1)
+
+
+def heatmap_overlay(
+    image: Image.Image,
+    heat,
+    *,
+    word: str = "",
+    alpha_max: float = 0.65,
+    keep_percentile: float = 60.0,
+) -> Image.Image:
+    """Overlay a focused jet heatmap (top activations only) + word label.
+
+    Previous soft yellow blend looked like a uniform tint; this keeps only
+    above-`keep_percentile` mass and uses a jet ramp so peaks read as 'hot'.
+    """
+    import numpy as np
+    from PIL import ImageDraw
 
     img = image.convert("RGB")
     w, h = img.size
     heat = np.asarray(heat, dtype=np.float32)
-    hmin, hmax = float(heat.min()), float(heat.max())
-    norm = np.zeros_like(heat) if hmax - hmin < 1e-8 else (heat - hmin) / (hmax - hmin)
+
+    flat = heat.reshape(-1)
+    lo = float(np.percentile(flat, 5))
+    hi = float(np.percentile(flat, 95))
+    if hi - lo < 1e-8:
+        lo, hi = float(flat.min()), float(flat.max())
+    if hi - lo < 1e-8:
+        norm = np.zeros_like(heat)
+    else:
+        norm = np.clip((heat - lo) / (hi - lo), 0.0, 1.0)
+
     t = torch.from_numpy(norm)[None, None]
     up = F.interpolate(t, size=(h, w), mode="bilinear", align_corners=False)
     norm_up = up.squeeze().numpy()
-    r = norm_up
-    g = 0.6 * norm_up + 0.2
-    b = 1.0 - 0.7 * norm_up
-    heat_rgb = np.clip(np.stack([r, g, b], axis=-1), 0, 1)
+
+    thr = float(np.percentile(norm_up, keep_percentile))
+    mask = norm_up >= thr
+    # rescale kept mass to 0..1 for stronger color
+    kept = norm_up.copy()
+    kept[~mask] = 0.0
+    if mask.any():
+        kmin, kmax = float(kept[mask].min()), float(kept[mask].max())
+        if kmax - kmin > 1e-8:
+            kept[mask] = (kept[mask] - kmin) / (kmax - kmin)
+
+    heat_rgb = _jet_rgb(kept)
     base = np.asarray(img).astype(np.float32) / 255.0
-    a = (alpha * norm_up)[..., None]
+    a = (alpha_max * kept)[..., None]
     blend = (1.0 - a) * base + a * heat_rgb
-    return Image.fromarray((np.clip(blend, 0, 1) * 255).astype(np.uint8))
+    out = Image.fromarray((np.clip(blend, 0, 1) * 255).astype(np.uint8))
+
+    draw = ImageDraw.Draw(out)
+    label = word if word else "heat"
+    # dark bar for readability
+    draw.rectangle([0, 0, w, 22], fill=(0, 0, 0))
+    draw.text((6, 4), label, fill=(255, 255, 0))
+    # tiny legend: low -> high
+    for i in range(100):
+        rgb = (_jet_rgb(np.array([i / 99.0]))[0] * 255).astype(np.uint8)
+        draw.point((w - 110 + i, 11), fill=tuple(int(c) for c in rgb))
+    draw.text((w - 108, 2), "low", fill=(180, 180, 180))
+    draw.text((w - 28, 2), "high", fill=(255, 80, 80))
+    return out
+
+
+def side_by_side(original: Image.Image, overlay: Image.Image) -> Image.Image:
+    o = original.convert("RGB")
+    v = overlay.convert("RGB")
+    if v.size != o.size:
+        v = v.resize(o.size, Image.Resampling.BILINEAR)
+    w, h = o.size
+    canvas = Image.new("RGB", (w * 2 + 8, h), (20, 20, 20))
+    canvas.paste(o, (0, 0))
+    canvas.paste(v, (w + 8, 0))
+    return canvas
 
 
 class PatchGrounder:
@@ -215,14 +282,24 @@ def ground_pair(
     for side in ("positive", "negative"):
         words = content_words(pair[side])[:max_words]
         for word in words:
+            import numpy as np
+
             heat = grounder.word_heatmap(image, word)
-            overlay = heatmap_overlay(image, heat)
+            overlay = heatmap_overlay(image, heat, word=f"{side}: {word}")
+            panel = side_by_side(image, overlay)
             fname = f"{side}_{safe_name(word)}.png"
+            panel_name = f"{side}_{safe_name(word)}_panel.png"
             overlay.save(dest / fname)
+            panel.save(dest / panel_name)
+            np.save(dest / f"{side}_{safe_name(word)}_heat.npy", np.asarray(heat))
             record["words"][side].append(
                 {
                     "word": word,
                     "file": str((dest / fname).as_posix()),
+                    "panel": str((dest / panel_name).as_posix()),
+                    "heat_npy": str(
+                        (dest / f"{side}_{safe_name(word)}_heat.npy").as_posix()
+                    ),
                     "heat_min": float(heat.min()),
                     "heat_max": float(heat.max()),
                     "heat_mean": float(heat.mean()),
