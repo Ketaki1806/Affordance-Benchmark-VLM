@@ -55,24 +55,41 @@ class CLIPScorer:
             torch.cuda.empty_cache()
 
     @torch.no_grad()
-    def score(self, image_path: str, text: str) -> float:
-        """Image–text cosine similarity in CLIP embedding space."""
+    def encode_image(self, image_path: str) -> torch.Tensor:
+        """L2-normalized CLIP image embedding (CPU float tensor, shape [D])."""
         if not self.is_loaded():
             raise RuntimeError("CLIP not loaded. Call load() first.")
-
         image = Image.open(image_path).convert("RGB")
-        inputs = self.processor(
-            text=[text],
-            images=image,
-            return_tensors="pt",
-            padding=True,
-        )
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
-        outputs = self.model(**inputs)
-        image_embeds = outputs.image_embeds / outputs.image_embeds.norm(dim=-1, keepdim=True)
-        text_embeds = outputs.text_embeds / outputs.text_embeds.norm(dim=-1, keepdim=True)
-        similarity = (image_embeds @ text_embeds.T).squeeze().item()
-        return float(similarity)
+        inputs = self.processor(images=image, return_tensors="pt")
+        pixel_values = inputs["pixel_values"].to(self.device)
+        feats = self.model.get_image_features(pixel_values=pixel_values)
+        if not torch.is_tensor(feats):
+            feats = feats.pooler_output
+        feats = feats / feats.norm(dim=-1, keepdim=True)
+        return feats.squeeze(0).float().cpu()
+
+    @torch.no_grad()
+    def encode_text(self, text: str) -> torch.Tensor:
+        """L2-normalized CLIP text embedding (CPU float tensor, shape [D])."""
+        if not self.is_loaded():
+            raise RuntimeError("CLIP not loaded. Call load() first.")
+        inputs = self.processor(text=[text], return_tensors="pt", padding=True)
+        input_ids = inputs["input_ids"].to(self.device)
+        attention_mask = inputs.get("attention_mask")
+        if attention_mask is not None:
+            attention_mask = attention_mask.to(self.device)
+        # Explicit path: some HF builds return BaseModelOutput from get_text_features.
+        text_out = self.model.text_model(input_ids=input_ids, attention_mask=attention_mask)
+        feats = self.model.text_projection(text_out.pooler_output)
+        feats = feats / feats.norm(dim=-1, keepdim=True)
+        return feats.squeeze(0).float().cpu()
+
+    @torch.no_grad()
+    def score(self, image_path: str, text: str) -> float:
+        """Image–text cosine similarity in CLIP embedding space."""
+        image_embeds = self.encode_image(image_path)
+        text_embeds = self.encode_text(text)
+        return float((image_embeds @ text_embeds).item())
 
     @torch.no_grad()
     def score_text_pair(self, text_a: str, text_b: str) -> float:

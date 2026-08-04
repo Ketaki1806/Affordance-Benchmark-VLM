@@ -174,12 +174,27 @@ Outputs: `artifacts/attribution/` (+ `xai_vision_vs_text.json`).
 
 XAI takeaway: binary affordance choice is **mostly text-explained**; coarse vision regions are a minority driver (CLIP/SigLIP especially). Open-VLJEPA uses vision more on some scenes (bag/tray/blender) but still usually picks the neg. Not Grad-CAM — occlusion proxy only.
 
+**N=100 scale-up (two distinct metrics):**
+
+1. **Occlusion vision share** (`vision_share`) — decision sensitivity.  
+   `bash scripts/condor_submit_attribution_n100.sh` → `artifacts/attribution_n100/summary.json`
+
+2. **Embedding modality gap** (`modality_gap` / `modality_gap_all`) — alignment geometry  
+   \(\|\bar z_{\mathrm{img}}-\bar z_{\mathrm{txt}}\|\) plus `mean_matched_cos`.  
+   `bash scripts/condor_submit_modality_gap.sh` → `artifacts/attribution_n100/embedding_modality_gap.json`
+
+Then: `python scripts/plot_modality_sensitivity.py` →  
+`modality_sensitivity_n100.svg` (occlusion) + `embedding_modality_gap_n100.svg` (gap).  
+Do not conflate the two in the report.
+
 ### 3.6 Word–region grounding (CLIP / SigLIP)
 
 Slide-style **word heatmaps** (not B-cos LLaVA): for each content word in pos/neg, map similarity to image patches (CLIP ViT) or 7×7 window crops (SigLIP).  
 Outputs: `artifacts/grounding/<backend>/<image_id>/{positive,negative}_<word>.png`  
 Cluster: `bash scripts/condor_submit_grounding.sh`  
 Use for figure panels (mirror wall/ceiling, microwave open/handle, bag carry/empty). Claim: dual-encoder patch–word similarity, not generative token grounding.
+
+**Report pack (curated):** `artifacts/report_figures/xai/` — see `README.txt` there. Prefer Fig A = CLIP wall vs ceiling; Fig B = mirror/microwave misground; Fig C = CLIP vs VLJEPA occlusion grids.
 
 ---
 

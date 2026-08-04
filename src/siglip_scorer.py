@@ -46,22 +46,36 @@ class SigLIPScorer:
             torch.cuda.empty_cache()
 
     @torch.no_grad()
-    def score(self, image_path: str, text: str) -> float:
-        """Image–text cosine similarity in SigLIP embedding space."""
+    def encode_image(self, image_path: str) -> torch.Tensor:
+        """L2-normalized SigLIP image embedding (CPU float tensor, shape [D])."""
         if not self.is_loaded():
             raise RuntimeError("SigLIP not loaded. Call load() first.")
-
         image = Image.open(image_path).convert("RGB")
+        inputs = self.processor(images=image, return_tensors="pt")
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        feats = self.model.get_image_features(**inputs)
+        feats = F.normalize(feats, dim=-1)
+        return feats.squeeze(0).float().cpu()
+
+    @torch.no_grad()
+    def encode_text(self, text: str) -> torch.Tensor:
+        """L2-normalized SigLIP text embedding (CPU float tensor, shape [D])."""
+        if not self.is_loaded():
+            raise RuntimeError("SigLIP not loaded. Call load() first.")
         inputs = self.processor(
             text=[text],
-            images=image,
             return_tensors="pt",
             padding="max_length",
             truncation=True,
         )
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
-        outputs = self.model(**inputs)
-        image_embeds = F.normalize(outputs.image_embeds, dim=-1)
-        text_embeds = F.normalize(outputs.text_embeds, dim=-1)
-        similarity = (image_embeds @ text_embeds.T).squeeze().item()
-        return float(similarity)
+        inputs = {k: v.to(self.device) for k, v in inputs.items() if v is not None}
+        feats = self.model.get_text_features(**inputs)
+        feats = F.normalize(feats, dim=-1)
+        return feats.squeeze(0).float().cpu()
+
+    @torch.no_grad()
+    def score(self, image_path: str, text: str) -> float:
+        """Image–text cosine similarity in SigLIP embedding space."""
+        image_embeds = self.encode_image(image_path)
+        text_embeds = self.encode_text(text)
+        return float((image_embeds @ text_embeds).item())

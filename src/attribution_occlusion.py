@@ -171,6 +171,16 @@ def _index_pairs_by_id(eval_json: Path) -> dict[str, dict]:
     return {p.get("image_id"): p for p in pairs}
 
 
+def load_all_pairs(eval_json: Path) -> list[dict]:
+    """Load every pair from an eval JSON (N=100 scale-up). Order preserved."""
+    with open(eval_json, encoding="utf-8") as f:
+        data = json.load(f)
+    pairs = data.get("pairs", []) if isinstance(data, dict) else data
+    if not isinstance(pairs, list) or not pairs:
+        raise ValueError(f"No pairs found in {eval_json}")
+    return list(pairs)
+
+
 def load_pairs_by_id(
     eval_json: Path,
     image_ids: list[str],
@@ -329,8 +339,37 @@ def save_grid_overlay(base: Image.Image, delta_drop: list[list[float]], path: Pa
     composited.save(path, format="PNG")
 
 
+def modality_sensitivity(result: dict[str, Any]) -> dict[str, float]:
+    """Peak vision vs text sensitivity for one attributed pair.
+
+    vision_share = max|grid Δ-drop| / (max|grid| + max|text dΔ|).
+    """
+    text_effects: list[float] = []
+    text_occ = result.get("text_occlusion", {})
+    for side in ("positive", "negative"):
+        for rec in text_occ.get(side, []):
+            text_effects.append(float(rec["d_delta"]))
+    grid = result.get("image_occlusion", {}).get("delta_drop") or []
+    flat = [float(x) for row in grid for x in row]
+    max_abs_text = max((abs(x) for x in text_effects), default=0.0)
+    max_abs_grid = max((abs(x) for x in flat), default=0.0)
+    denom = max_abs_grid + max_abs_text
+    vision_share = (max_abs_grid / denom) if denom > 0 else 0.0
+    return {
+        "max_abs_text": max_abs_text,
+        "max_abs_grid": max_abs_grid,
+        "vision_share": vision_share,
+    }
+
+
 def attribute_pair(
-    scorer: Any, backend: str, pair: dict, grid: int, out_dir: Path
+    scorer: Any,
+    backend: str,
+    pair: dict,
+    grid: int,
+    out_dir: Path,
+    *,
+    save_overlays: bool = True,
 ) -> dict[str, Any]:
     """Run text leave-one-out, role ablations, and image blackout attribution for one pair."""
     image_path = pair["image_path"]
@@ -378,6 +417,15 @@ def attribute_pair(
             "role_ablations": role_ablations,
         },
         "image_occlusion": {"grid": grid, "delta_drop": delta_drop},
+        "modality": modality_sensitivity(
+            {
+                "text_occlusion": {
+                    "positive": pos_records,
+                    "negative": neg_records,
+                },
+                "image_occlusion": {"delta_drop": delta_drop},
+            }
+        ),
     }
 
     backend_dir = Path(out_dir) / backend
@@ -388,8 +436,9 @@ def attribute_pair(
         json.dump(result, f, indent=2, ensure_ascii=False)
         f.write("\n")
 
-    grid_path = backend_dir / f"{image_id}_grid.png"
-    save_grid_overlay(base_image, delta_drop, grid_path)
+    if save_overlays:
+        grid_path = backend_dir / f"{image_id}_grid.png"
+        save_grid_overlay(base_image, delta_drop, grid_path)
 
     return result
 
@@ -450,12 +499,19 @@ def run_attribution(
     grid: int = 3,
     config: dict | None = None,
     vljepa_checkpoint: str | None = None,
+    *,
+    save_overlays: bool = True,
 ) -> dict[str, Any]:
     cfg = config or load_config()
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    summary: dict[str, Any] = {"num_pairs": len(pairs), "grid": grid, "backends": {}}
+    summary: dict[str, Any] = {
+        "num_pairs": len(pairs),
+        "grid": grid,
+        "save_overlays": save_overlays,
+        "backends": {},
+    }
     summary_path = out_dir / "summary.json"
 
     def _write_summary() -> None:
@@ -470,7 +526,14 @@ def run_attribution(
             pair_summaries = []
             try:
                 for pair in pairs:
-                    result = attribute_pair(scorer, backend, pair, grid, out_dir)
+                    result = attribute_pair(
+                        scorer,
+                        backend,
+                        pair,
+                        grid,
+                        out_dir,
+                        save_overlays=save_overlays,
+                    )
                     pair_summaries.append(
                         {
                             "image_id": result["image_id"],
@@ -479,6 +542,7 @@ def run_attribution(
                             "image_occlusion": {
                                 "delta_drop": result["image_occlusion"]["delta_drop"]
                             },
+                            "modality": result["modality"],
                         }
                     )
             finally:
@@ -515,7 +579,20 @@ def main(argv: list[str] | None = None) -> int:
         "--backends", nargs="+", default=["clip", "siglip", "open_vljepa"]
     )
     parser.add_argument(
-        "--image-ids", nargs="+", default=None, help="Defaults to DEFAULT_IMAGE_IDS"
+        "--image-ids",
+        nargs="+",
+        default=None,
+        help="Defaults to DEFAULT_IMAGE_IDS (ignored if --all-pairs)",
+    )
+    parser.add_argument(
+        "--all-pairs",
+        action="store_true",
+        help="Attribute every pair in --pairs-json (N=100 scale-up); ignores --image-ids",
+    )
+    parser.add_argument(
+        "--no-overlays",
+        action="store_true",
+        help="Skip writing *_grid.png overlays (faster for full-N runs)",
     )
     def _positive_int(value: str) -> int:
         ivalue = int(value)
@@ -533,16 +610,22 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config = load_config(args.config) if args.config else load_config()
-    image_ids = args.image_ids or DEFAULT_IMAGE_IDS
     pairs_json = resolve_path(args.pairs_json, PROJECT_ROOT)
-    extra_pairs_json = (
-        [resolve_path(p, PROJECT_ROOT) for p in args.extra_pairs_json]
-        if args.extra_pairs_json
-        else None
-    )
-    pairs = load_pairs_by_id(
-        pairs_json, image_ids, extra_json=extra_pairs_json, skip_missing=args.skip_missing
-    )
+    if args.all_pairs:
+        pairs = load_all_pairs(pairs_json)
+    else:
+        image_ids = args.image_ids or DEFAULT_IMAGE_IDS
+        extra_pairs_json = (
+            [resolve_path(p, PROJECT_ROOT) for p in args.extra_pairs_json]
+            if args.extra_pairs_json
+            else None
+        )
+        pairs = load_pairs_by_id(
+            pairs_json,
+            image_ids,
+            extra_json=extra_pairs_json,
+            skip_missing=args.skip_missing,
+        )
     out_dir = resolve_path(args.out_dir, PROJECT_ROOT)
 
     summary = run_attribution(
@@ -552,6 +635,7 @@ def main(argv: list[str] | None = None) -> int:
         grid=args.grid,
         config=config,
         vljepa_checkpoint=args.vljepa_checkpoint,
+        save_overlays=not args.no_overlays,
     )
     print(json.dumps(summary, indent=2))
     return 0

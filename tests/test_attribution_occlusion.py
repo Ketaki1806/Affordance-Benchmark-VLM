@@ -12,8 +12,10 @@ from attribution_occlusion import (
     blackout_grid_cell,
     delta,
     leave_one_out,
+    load_all_pairs,
     load_pairs_by_id,
     main,
+    modality_sensitivity,
     role_labels,
     tokenize_words,
 )
@@ -82,8 +84,18 @@ def test_attribute_pair_runs(tmp_path):
     out = attribute_pair(FakeScorer(), "fake", pair, grid=3, out_dir=tmp_path)
     assert out["baseline"]["delta"] == out["baseline"]["pos_score"] - out["baseline"]["neg_score"]
     assert len(out["image_occlusion"]["delta_drop"]) == 3
+    assert "modality" in out
+    assert "vision_share" in out["modality"]
     assert (tmp_path / "fake" / "lvis_test.json").is_file()
     assert (tmp_path / "fake" / "lvis_test_grid.png").is_file()
+
+    out_no = attribute_pair(
+        FakeScorer(), "fake", {**pair, "image_id": "lvis_no_png"}, grid=3, out_dir=tmp_path,
+        save_overlays=False,
+    )
+    assert (tmp_path / "fake" / "lvis_no_png.json").is_file()
+    assert not (tmp_path / "fake" / "lvis_no_png_grid.png").is_file()
+    assert out_no["modality"]["vision_share"] >= 0.0
 
 
 def test_attribute_pair_baseline_model_choice_and_correct(tmp_path):
@@ -191,11 +203,14 @@ def test_run_attribution_summary_enriched(tmp_path):
     delta_drop = pair_summary["image_occlusion"]["delta_drop"]
     assert len(delta_drop) == 3
     assert all(len(row) == 3 for row in delta_drop)
+    assert "modality" in pair_summary
+    assert "vision_share" in pair_summary["modality"]
 
     # summary.json on disk must round-trip the same enrichment.
     with open(tmp_path / "summary.json", encoding="utf-8") as f:
         on_disk = json.load(f)
     assert on_disk["backends"]["fake"]["pairs"][0]["top_text_drops"] == top_drops
+    assert on_disk["backends"]["fake"]["pairs"][0]["modality"] == pair_summary["modality"]
 
 
 class OcclusionSensitiveScorer:
@@ -368,3 +383,34 @@ def test_cli_grid_rejects_non_positive(tmp_path, capsys):
 
     with pytest.raises(SystemExit):
         main(["--pairs-json", str(eval_json), "--grid", "-1"])
+
+
+def test_load_all_pairs_preserves_order(tmp_path):
+    eval_json = tmp_path / "eval.json"
+    eval_json.write_text(
+        json.dumps(
+            {
+                "pairs": [
+                    {"image_id": "b", "positive": "p"},
+                    {"image_id": "a", "positive": "q"},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = load_all_pairs(eval_json)
+    assert [p["image_id"] for p in result] == ["b", "a"]
+
+
+def test_modality_sensitivity_vision_share():
+    result = {
+        "text_occlusion": {
+            "positive": [{"d_delta": 0.04}, {"d_delta": -0.01}],
+            "negative": [{"d_delta": 0.02}],
+        },
+        "image_occlusion": {"delta_drop": [[0.01, 0.0], [0.0, -0.005]]},
+    }
+    mod = modality_sensitivity(result)
+    assert mod["max_abs_text"] == pytest.approx(0.04)
+    assert mod["max_abs_grid"] == pytest.approx(0.01)
+    assert mod["vision_share"] == pytest.approx(0.01 / 0.05)
