@@ -45,6 +45,18 @@ class SigLIPScorer:
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
+    @staticmethod
+    def _as_embed_tensor(emb):
+        """Normalize HF quirks: tensor vs BaseModelOutputWithPooling."""
+        if torch.is_tensor(emb):
+            return emb
+        pooled = getattr(emb, "pooler_output", None)
+        if pooled is None and isinstance(emb, (tuple, list)):
+            pooled = emb[1] if len(emb) > 1 else emb[0]
+        if pooled is None:
+            raise TypeError(f"Cannot extract embedding from {type(emb)}")
+        return pooled
+
     @torch.no_grad()
     def encode_image(self, image_path: str) -> torch.Tensor:
         """L2-normalized SigLIP image embedding (CPU float tensor, shape [D])."""
@@ -52,10 +64,16 @@ class SigLIPScorer:
             raise RuntimeError("SigLIP not loaded. Call load() first.")
         image = Image.open(image_path).convert("RGB")
         inputs = self.processor(images=image, return_tensors="pt")
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
-        feats = self.model.get_image_features(**inputs)
-        feats = F.normalize(feats, dim=-1)
-        return feats.squeeze(0).float().cpu()
+        pixel_values = inputs["pixel_values"].to(self.device)
+        raw = self.model.get_image_features(pixel_values=pixel_values)
+        if torch.is_tensor(raw):
+            feats = raw
+        else:
+            pooled = self._as_embed_tensor(raw)
+            proj = getattr(self.model, "visual_projection", None)
+            feats = proj(pooled) if proj is not None else pooled
+        feats = F.normalize(feats.float(), dim=-1)
+        return feats.squeeze(0).cpu()
 
     @torch.no_grad()
     def encode_text(self, text: str) -> torch.Tensor:
@@ -68,14 +86,44 @@ class SigLIPScorer:
             padding="max_length",
             truncation=True,
         )
-        inputs = {k: v.to(self.device) for k, v in inputs.items() if v is not None}
-        feats = self.model.get_text_features(**inputs)
-        feats = F.normalize(feats, dim=-1)
-        return feats.squeeze(0).float().cpu()
+        text_kwargs = {
+            k: v.to(self.device)
+            for k, v in inputs.items()
+            if k in ("input_ids", "attention_mask")
+        }
+        raw = self.model.get_text_features(**text_kwargs)
+        if torch.is_tensor(raw):
+            feats = raw
+        else:
+            pooled = self._as_embed_tensor(raw)
+            proj = getattr(self.model, "text_projection", None)
+            feats = proj(pooled) if proj is not None else pooled
+        feats = F.normalize(feats.float(), dim=-1)
+        return feats.squeeze(0).cpu()
 
     @torch.no_grad()
     def score(self, image_path: str, text: str) -> float:
         """Image–text cosine similarity in SigLIP embedding space."""
-        image_embeds = self.encode_image(image_path)
-        text_embeds = self.encode_text(text)
-        return float((image_embeds @ text_embeds).item())
+        if not self.is_loaded():
+            raise RuntimeError("SigLIP not loaded. Call load() first.")
+
+        # Joint forward is the historically stable path on cluster transformers.
+        image = Image.open(image_path).convert("RGB")
+        inputs = self.processor(
+            text=[text],
+            images=image,
+            return_tensors="pt",
+            padding="max_length",
+            truncation=True,
+        )
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        outputs = self.model(**inputs)
+        image_embeds = getattr(outputs, "image_embeds", None)
+        text_embeds = getattr(outputs, "text_embeds", None)
+        if image_embeds is None or text_embeds is None:
+            return float(
+                (self.encode_image(image_path) @ self.encode_text(text)).item()
+            )
+        image_embeds = F.normalize(image_embeds.float(), dim=-1)
+        text_embeds = F.normalize(text_embeds.float(), dim=-1)
+        return float((image_embeds @ text_embeds.T).squeeze().item())
