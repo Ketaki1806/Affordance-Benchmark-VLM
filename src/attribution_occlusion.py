@@ -506,13 +506,22 @@ def run_attribution(
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    summary_path = out_dir / "summary.json"
     summary: dict[str, Any] = {
         "num_pairs": len(pairs),
         "grid": grid,
         "save_overlays": save_overlays,
         "backends": {},
     }
-    summary_path = out_dir / "summary.json"
+    # Merge into an existing summary so SigLIP-only re-runs keep CLIP / VLJEPA.
+    if summary_path.is_file():
+        try:
+            with open(summary_path, encoding="utf-8") as f:
+                prev = json.load(f)
+            if isinstance(prev, dict) and isinstance(prev.get("backends"), dict):
+                summary["backends"] = dict(prev["backends"])
+        except (json.JSONDecodeError, OSError):
+            pass
 
     def _write_summary() -> None:
         with open(summary_path, "w", encoding="utf-8") as f:

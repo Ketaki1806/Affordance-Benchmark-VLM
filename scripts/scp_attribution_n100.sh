@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
-# Pull N=100 occlusion + embedding modality gap artifacts from the LST cluster.
+# Pull N=100 occlusion + embedding modality gap artifacts from LST.
 #
-# Usage (from local repo root, Git Bash / WSL / macOS / Linux):
+# From your laptop use the *login* host (not "submit" — that name only
+# resolves inside the cluster). Nethome is shared, so artifacts written
+# on submit/GPU jobs are visible at the same path on login.
+#
+# Usage (Git Bash / WSL / macOS / Linux):
 #   bash scripts/scp_attribution_n100.sh
-#   REMOTE=submit:~/Affordance-Benchmark-VLM bash scripts/scp_attribution_n100.sh
 #   bash scripts/scp_attribution_n100.sh --with-logs
 #
-# PowerShell one-liner equivalent:
-#   scp -r submit:~/Affordance-Benchmark-VLM/artifacts/attribution_n100 ./artifacts/
+# PowerShell:
+#   scp -r kahadnurkar@login.lst.uni-saarland.de:~/Affordance-Benchmark-VLM/artifacts/attribution_n100 ./artifacts/
 
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-REMOTE="${REMOTE:-submit:~/Affordance-Benchmark-VLM}"
+# Override if needed, e.g. REMOTE=kahadnurkar@login.lst.uni-saarland.de:~/Affordance_Benchmark
+REMOTE="${REMOTE:-kahadnurkar@login.lst.uni-saarland.de:~/Affordance-Benchmark-VLM}"
 LOCAL_ROOT="${PROJECT_ROOT}/artifacts"
 WITH_LOGS=0
 
@@ -20,7 +24,7 @@ for arg in "$@"; do
   case "${arg}" in
     --with-logs) WITH_LOGS=1 ;;
     -h|--help)
-      sed -n '2,12p' "$0"
+      sed -n '2,16p' "$0"
       exit 0
       ;;
     *)
@@ -36,7 +40,6 @@ echo "Remote: ${REMOTE}"
 echo "Local:  ${LOCAL_ROOT}/attribution_n100"
 echo ""
 
-# Main results (summary.json, per-pair JSONs, embedding_modality_gap.json)
 scp -r "${REMOTE}/artifacts/attribution_n100" "${LOCAL_ROOT}/"
 
 echo ""

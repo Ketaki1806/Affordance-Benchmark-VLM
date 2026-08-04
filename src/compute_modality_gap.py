@@ -124,6 +124,15 @@ def run_modality_gap(
         "backends": {},
     }
     out_path = out_dir / "embedding_modality_gap.json"
+    # Merge so a SigLIP-only re-run keeps CLIP / VLJEPA rows.
+    if out_path.is_file():
+        try:
+            with open(out_path, encoding="utf-8") as f:
+                prev = json.load(f)
+            if isinstance(prev, dict) and isinstance(prev.get("backends"), dict):
+                summary["backends"] = dict(prev["backends"])
+        except (json.JSONDecodeError, OSError):
+            pass
 
     for backend in backends:
         try:
