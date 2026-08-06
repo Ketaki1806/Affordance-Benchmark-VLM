@@ -60,6 +60,12 @@ def merge_objects(shard_files: list[Path]) -> list[dict[str, Any]]:
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help="YAML config (default: configs/config.yaml); used for default output paths",
+    )
+    p.add_argument(
         "--raw-dir",
         type=Path,
         default=None,
@@ -82,7 +88,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    cfg = load_config()
+    cfg = load_config(args.config) if args.config else load_config()
     raw_out = resolve_path(args.raw_out or cfg["output"]["raw_captions"], PROJECT_ROOT)
     filtered_out = resolve_path(
         args.filtered_out or cfg["output"]["filtered_captions"],

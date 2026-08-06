@@ -1,0 +1,40 @@
+# Evaluate CLIP fine-tuned on train_1000 against held-out val N=100 pairs.
+# Does NOT regenerate captions — re-scores existing eval pairs.
+
+project_name: affordance_benchmark_eval_clip_ft_train1000
+
+data:
+  sample_dir: data/paco/coco
+  manifest_path: data/paco/manifest_val_100.json
+
+output:
+  raw_captions: artifacts/captions/val_full/raw.json
+  filtered_captions: artifacts/captions/val_100_pairs/filtered.json
+  eval_clip: artifacts/eval/val_100_after_train1000/clip_ft.json
+  eval_siglip: artifacts/eval/val_100_after_train1000/siglip.json
+  eval_vljepa: artifacts/eval/val_100_after_train1000/open_vljepa.json
+  eval_yspace: artifacts/eval/val_100_after_train1000/yspace.json
+  eval_summary: artifacts/eval/val_100_after_train1000/summary_clip_ft.json
+
+models:
+  qwen_vl: Qwen/Qwen2.5-VL-7B-Instruct
+  clip: openai/clip-vit-large-patch14
+  clip_device: cuda
+  clip_checkpoint: artifacts/checkpoints/clip/finetuned_affordance_train1000_ep5.pt
+  siglip: google/siglip-so400m-patch14-384
+  siglip_device: cuda
+  qwen_dtype: float16
+  min_pixels: 200704
+  max_pixels: 1003520
+
+  open_vljepa:
+    enabled: false
+    repo_root: vendor/open-vljepa
+    checkpoint: artifacts/checkpoints/open-vljepa/best.pt
+    device: cuda
+    dtype: bfloat16
+    retrieval_prompt: "Describe the image."
+
+eval:
+  backends:
+    - clip

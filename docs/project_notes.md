@@ -40,18 +40,50 @@ This project:
 | Seg-only eval | binary acc + confidence gap |
 | Pixel grounding | out of scope |
 
+### 1.1 Existing datasets like this one?
+
+**No exact twin.** Closest by *protocol*: SugarCrepe / ++, ARO, CREPE, VL-CheckList, Winoground, HNC (image + pos vs hard-neg caption; not affordance). Closest by *affordance/parts*: AGD20K / AffordanceCLIP (localization), PACO (parts/attributes — our image source), FG-OVD PACO attribute hard-neg captions (appearance swaps, not purpose polarity), IIT-AFF/UMD/PAD, HICO/HAKE.
+
+**Positioning sentence:** VL hard-neg suites test compositionality; affordance datasets test localization; PACO tests parts/attributes. This project combines PACO parts with affordance purpose hard negatives in a SugarCrepe-style binary ranking setup — not found as an existing large public benchmark (N=100 diagnostic for the seminar).
+
 ---
 
 ## 2. Pipeline choices
 
 | Component | Choice |
 |-----------|--------|
-| Captions | Qwen2.5-VL-7B, 1 pos + 1 hard neg |
+| Captions | Qwen2.5-VL-7B-Instruct (`Qwen/Qwen2.5-VL-7B-Instruct`, fp16), 1 pos + 1 hard neg |
 | CLIP filter before eval | removed (circular) |
 | Human check | pilot N=20 |
 | Pilot data | `manifest_pilot.json` |
 | Full preferred-part pool | ~1129 (`manifest_val_full.json`) |
 | Scale-up eval | N=100 (`manifest_val_100.json`) |
+
+**Why this Qwen:** 2.5-VL Instruct (not older Qwen2-VL / closed API) for structured chat captions + HF/transformers support; **7B** as quality–VRAM trade-off on one Condor GPU (stronger than 3B, cheaper than 32B/72B for N=100 + train_500). Not an ablation claim that 7B is globally optimal — captions stay candidates pending human check.
+
+### 2.1 Train N=1000 (optional scale-up)
+
+Caption + FT on **1000 PACO-LVIS train** images (held out from val N=100); re-eval on existing val pairs.
+
+```bash
+# 1) manifest
+bash scripts/build_paco_train_1000.sh
+
+# 2) captions (10 GPU shards)
+bash scripts/condor_submit_train_1000_captions_sharded.sh
+# after jobs finish:
+source scripts/activate_env.sh && export PYTHONPATH=src
+python src/merge_caption_shards.py --config configs/config_train_1000.yaml
+
+# 3) FT
+bash scripts/condor_submit_finetune_clip_1000.sh
+# optional: bash scripts/condor_submit_finetune_open_vljepa_1000.sh
+
+# 4) eval FT on val N=100
+bash scripts/condor_submit_eval_clip_ft_train1000.sh
+```
+
+Outputs: `artifacts/captions/train_1000/`, `artifacts/checkpoints/clip/finetuned_affordance_train1000*.pt`, `artifacts/eval/val_100_after_train1000/`.
 
 | Backend | Code | Notes |
 |---------|------|-------|
