@@ -66,8 +66,9 @@ This project:
 Caption + FT on **1000 PACO-LVIS train** images (held out from val N=100); re-eval on existing val pairs.
 
 ```bash
-# 1) manifest
-bash scripts/build_paco_train_1000.sh
+# 1) manifest (CPU Condor — train JSON is RAM-heavy; do not rely on interactive submit shell)
+bash scripts/condor_submit_build_train_1000_manifest.sh
+# after it finishes: ls data/paco/manifest_train_1000.json
 
 # 2) captions (10 GPU shards)
 bash scripts/condor_submit_train_1000_captions_sharded.sh

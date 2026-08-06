@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Build PACO-LVIS train manifest with N=1000 (one preferred part per image).
 #
-# Usage (on cluster, after COCO train2017 + PACO train ann are available):
+# Prefer Condor (train JSON is large / RAM-heavy on interactive shells):
+#   bash scripts/condor_submit_build_train_1000_manifest.sh
+#
+# Direct (only if you already have headroom on a worker):
 #   source scripts/activate_env.sh
 #   bash scripts/build_paco_train_1000.sh
 #
