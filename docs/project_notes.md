@@ -78,13 +78,14 @@ python src/merge_caption_shards.py --config configs/config_train_1000.yaml
 
 # 3) FT
 bash scripts/condor_submit_finetune_clip_1000.sh
-# optional: bash scripts/condor_submit_finetune_open_vljepa_1000.sh
+bash scripts/condor_submit_finetune_open_vljepa_1000.sh
 
 # 4) eval FT on val N=100
 bash scripts/condor_submit_eval_clip_ft_train1000.sh
+bash scripts/condor_submit_eval_vljepa_ft_train1000.sh
 ```
 
-Outputs: `artifacts/captions/train_1000/`, `artifacts/checkpoints/clip/finetuned_affordance_train1000*.pt`, `artifacts/eval/val_100_after_train1000/`.
+Outputs: `artifacts/captions/train_1000/`, `artifacts/checkpoints/{clip,open-vljepa}/finetuned_affordance_train1000*.pt`, `artifacts/eval/val_100_after_train1000/`.
 
 | Backend | Code | Notes |
 |---------|------|-------|
