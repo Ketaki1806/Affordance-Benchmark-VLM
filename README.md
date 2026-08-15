@@ -1,122 +1,70 @@
 # Affordance Benchmark
 
-Qwen2.5-VL-7B writes one positive and one hard-negative affordance caption per image; CLIP / SigLIP / Open-VLJEPA score which caption fits the image better.
+Hard-negative affordance caption benchmark: Qwen2.5-VL writes one valid and one
+hard negative caption per PACO part image; CLIP / SigLIP / Open-VLJEPA score which
+caption fits better. Paper: `papers/seminar/`.
 
-Notes and numbers: [docs/project_notes.md](docs/project_notes.md).
+For layout and module explanations, see [docs/CODE_STRUCTURE.md](docs/CODE_STRUCTURE.md).
+Working notes: [docs/project_notes.md](docs/project_notes.md).
 
-## Pipeline
+## Requirements
 
-1. Generate captions (Qwen)
-2. Validate length / JSON
-3. Save `raw.json` + `filtered.json`
-4. Evaluate on `filtered.json`
-
-## Eval
-
-```bash
-# set eval.backends in configs/config.yaml (clip | siglip | open_vljepa)
-bash scripts/condor_submit_evaluate.sh
-
-# text-only pos/neg closeness (EmbeddingGemma)
-bash scripts/run_yspace_analysis.sh
-
-# Open-VLJEPA setup (needs HF access to Llama + EmbeddingGemma)
-bash scripts/setup_open_vljepa.sh
-hf auth login
-```
-
-| Backend | Role |
-|---------|------|
-| CLIP | pos vs neg cosine |
-| SigLIP | same task |
-| Y-space | cos(pos, neg) text only |
-| Open-VLJEPA | same task (gated deps) |
-
-Outputs under `artifacts/eval/val_full/`.
+- Python 3.10+
+- Conda / micromamba (see `environment.yml`)
+- GPU recommended for caption generation and Open-VLJEPA
+- Pillow + Jupyter to regenerate paper figures
 
 ```bash
-pip install matplotlib
-export PYTHONPATH=src
-python src/analyze_clip_results.py
-```
+# Linux
+bash scripts/setup.sh
+source scripts/activate_env.sh
+pip install -r requirements-gpu.txt
 
-## Layout
-
-```
-configs/   config.yaml, train/eval overlays
-data/      sample + PACO manifests
-src/       pipeline, scorers, FT
-scripts/   local + HTCondor
-```
-
-## Sample data
-
-1. Images in `data/sample/` listed in `manifest.json`
-2. Caption style: `[Verb] the [part] to [purpose].`
-
-## Local (Windows)
-
-```powershell
+# Windows
 .\scripts\setup_env.ps1
 conda activate affordance_benchmark
 pip install -r requirements-gpu.txt
-.\scripts\run_pipeline.ps1
 ```
 
-## LST cluster
-
-| Node | Use |
-|------|-----|
-| `login.lst.uni-saarland.de` | edit / setup |
-| `ssh submit` | Condor |
+## Quick start
 
 ```bash
-cd ~/Affordance-Benchmark-VLM
-bash scripts/install_micromamba.sh
-bash scripts/setup.sh
-bash scripts/condor_submit_install.sh   # on submit
+# Sample images already under data/sample/
+export PYTHONPATH=src
+python src/pipeline.py --limit 2
+python src/evaluate.py --backends clip
 ```
 
-Pipeline (GPU, ~32 GB RAM request):
+Paper figures:
 
 ```bash
-ssh submit
-cd ~/Affordance-Benchmark-VLM
-bash scripts/condor_submit_pipeline.sh
-tail -f artifacts/logs/pipeline.<ClusterId>.out
+# open notebooks/paper_figures.ipynb
+# run helpers → data → "Write all paper PNGs"
 ```
+
+## Configuration
+
+Defaults live in [`configs/config.yaml`](configs/config.yaml):
+
+| Key | Meaning |
+|-----|---------|
+| `data.manifest_path` | Image list for captioning |
+| `output.filtered_captions` | Eval input JSON |
+| `eval.backends` | `clip` / `siglip` / `open_vljepa` |
+| `models.clip` | HF CLIP id |
+| `models.clip_checkpoint` | Optional FT weights |
+
+Overlays: `configs/config_train_ft.yaml`, `config_eval_*.yaml`.
+
+## Common commands
 
 ```bash
-source scripts/activate_env.sh
-bash scripts/condor_check_resources.sh
-# reset: bash scripts/cluster_cleanup.sh --all
+bash scripts/run_pipeline.sh
+bash scripts/run_evaluate.sh
+bash scripts/run_yspace_analysis.sh
 ```
 
-## PACO-LVIS
-
-Val has ~2410 images / ~21k part segments. We use **one preferred part per image**. Seminar scale-up: **N=100** subsample (`manifest_val_100.json`). Human filter on pilot N=20 only.
-
-Annotations:
-
-```bash
-mkdir -p data/paco/annotations data/paco/images
-cd data/paco/annotations
-curl -L -o paco_lvis_v1.zip https://dl.fbaipublicfiles.com/paco/annotations/paco_lvis_v1.zip
-unzip paco_lvis_v1.zip
-```
-
-Images: COCO 2017 under `--image-root` (`train2017` / `val2017`).
-
-Pilot:
-
-```bash
-bash scripts/build_paco_pilot_manifest.sh \
-  --ann data/paco/annotations/paco_lvis_v1_val.json \
-  --image-root /path/to/coco \
-  --n 20 --require-image --copy-images
-```
-
-N=100:
+PACO val N=100:
 
 ```bash
 bash scripts/build_paco_val_manifest.sh \
@@ -126,21 +74,7 @@ bash scripts/build_paco_val_manifest.sh \
   --output data/paco/manifest_val_100.json
 ```
 
-```bash
-bash scripts/condor_submit_pipeline.sh
-bash scripts/condor_submit_evaluate.sh
-```
+## License
 
-Train FT captions / ranking FT: `configs/config_train_ft.yaml`, `condor_submit_train_captions.sh`, `condor_submit_finetune_clip.sh`, `condor_submit_finetune_open_vljepa.sh`.
-
-Human FT eval: `bash scripts/condor_submit_evaluate_human.sh`.
-
-## Config
-
-See [configs/config.yaml](configs/config.yaml) for caption length, backends, checkpoints.
-
-## Cluster notes
-
-- Prefer `~/tmp` (login `/tmp` often full)
-- No `request_runtime` on LST
-- `should_transfer_files = NO` (nethome shared)
+Academic use. Third-party models (Qwen, CLIP, SigLIP, Open-VLJEPA,
+PACO/COCO) keep their own licenses.

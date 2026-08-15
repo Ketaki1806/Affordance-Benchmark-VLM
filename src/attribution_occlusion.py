@@ -1,4 +1,9 @@
-"""Pure helpers + pair-level runner/CLI for occlusion-based post-hoc attribution."""
+"""Occlusion-based post-hoc attribution for affordance pairs.
+
+Idea: blank out image patches (or words), re-score pos vs neg, and measure how
+much the decision depended on vision vs text. Used for vision-share figures in
+the paper (`artifacts/attribution_n100/`).
+"""
 
 from __future__ import annotations
 

@@ -68,10 +68,16 @@ def tokens(s: str) -> set[str]:
 
 
 def tag(pair: dict) -> str:
+    """Heuristic failure tag for a wrong (or any) pos/neg pair.
+
+    Priority: known fluency/noise cases → spatial lexical cues → attribute default.
+    Used by the paper notebook when recomputing FT fix-rates.
+    """
     pos, neg = pair["positive"], pair["negative"]
     tp, tn = tokens(pos), tokens(neg)
     obj = pair["object"].lower()
 
+    # Hand-tagged caption-noise / nonsense cases (not model geometry failures).
     if "dry the towel with the towel" in neg.lower():
         return "fluency"
     if "press the button to activate the lamp" in pos.lower() and "pillow" in obj:

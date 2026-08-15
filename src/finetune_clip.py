@@ -204,6 +204,7 @@ def train(config: dict[str, Any], *, seed: int = 42) -> Path:
 
                 sim_pos = (image_embeds * pos_embeds).sum(dim=-1)
                 sim_neg = (image_embeds * neg_embeds).sum(dim=-1)
+                # Ranking hinge: push cos(img,pos) above cos(img,neg) by `margin`.
                 loss = F.relu(margin - sim_pos + sim_neg).mean()
                 loss = loss / grad_accum
 

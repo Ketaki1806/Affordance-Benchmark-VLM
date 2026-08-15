@@ -1,4 +1,8 @@
-"""CLIP image–caption cosine scorer."""
+"""CLIP image–caption cosine scorer.
+
+Supports the HF pretrained weights and optional ranking-FT checkpoints
+(written by src/finetune_clip.py as {"model_state_dict": ...}).
+"""
 
 import torch
 from PIL import Image
@@ -28,6 +32,7 @@ class CLIPScorer:
         self.model = CLIPModel.from_pretrained(self.model_name).to(self.device)
         self.processor = CLIPProcessor.from_pretrained(self.model_name)
         if self.checkpoint:
+            # Optional FT weights: same architecture, swapped state dict.
             from pathlib import Path
 
             from config_loader import PROJECT_ROOT, resolve_path
@@ -86,9 +91,10 @@ class CLIPScorer:
 
     @torch.no_grad()
     def score(self, image_path: str, text: str) -> float:
-        """Image–text cosine similarity in CLIP embedding space."""
+        """Image–text cosine similarity in CLIP embedding space (higher = better match)."""
         image_embeds = self.encode_image(image_path)
         text_embeds = self.encode_text(text)
+        # Both vectors are L2-normalized, so the dot product is cosine similarity.
         return float((image_embeds @ text_embeds).item())
 
     @torch.no_grad()

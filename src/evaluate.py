@@ -1,4 +1,8 @@
-"""Evaluate CLIP / SigLIP / Open-VLJEPA on (pos, neg) caption pairs."""
+"""Evaluate CLIP / SigLIP / Open-VLJEPA on (pos, neg) caption pairs.
+
+For each image we score the positive and hard-negative captions separately,
+then check whether the positive gets the higher image–text similarity.
+"""
 
 from __future__ import annotations
 
@@ -16,12 +20,15 @@ logger = get_logger(__name__)
 
 
 class AffordanceScorer(Protocol):
+    """Minimal interface shared by CLIP / SigLIP / Open-VLJEPA scorers."""
+
     def load(self) -> None: ...
     def unload(self) -> None: ...
     def score(self, image_path: str, text: str) -> float: ...
 
 
 def _load_filtered_captions(path: Path) -> list[dict[str, Any]]:
+    """Load pipeline output JSON; supports {"objects": [...]} or a bare list."""
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
     objects = data.get("objects", data)
@@ -31,6 +38,7 @@ def _load_filtered_captions(path: Path) -> list[dict[str, Any]]:
 
 
 def _iter_pairs(record: dict[str, Any]) -> list[tuple[str, str]]:
+    """Cartesian product of most_probable × negative captions for one image."""
     tiers = record.get("affordance_tiers", {})
     positives = tiers.get("most_probable", [])
     negatives = tiers.get("negative", [])
@@ -48,11 +56,12 @@ def _evaluate_pair(
     positive: str,
     negative: str,
 ) -> dict[str, Any]:
+    """Binary decision: correct iff image–pos cosine ≥ image–neg cosine."""
     pos_score = scorer.score(image_path, positive)
     neg_score = scorer.score(image_path, negative)
     chosen = "most_probable" if pos_score >= neg_score else "negative"
     correct = chosen == "most_probable"
-    gap = abs(pos_score - neg_score)
+    gap = abs(pos_score - neg_score)  # how decisive the ranking was
     return {
         "positive": positive,
         "negative": negative,
@@ -65,6 +74,7 @@ def _evaluate_pair(
 
 
 def _summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
+    """Aggregate pair-level decisions into accuracy + mean confidence gap."""
     if not results:
         return {
             "num_pairs": 0,
@@ -87,6 +97,7 @@ def _evaluate_backend(
     scorer: AffordanceScorer,
     records: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    """Run one backend over all records; always unload the model afterwards."""
     logger.info("Evaluating backend: %s", backend)
     scorer.load()
     pair_results: list[dict[str, Any]] = []
@@ -117,7 +128,7 @@ def _evaluate_backend(
                     pair["correct"],
                 )
     finally:
-        scorer.unload()
+        scorer.unload()  # free GPU memory before the next backend
 
     return {
         "backend": backend,
@@ -131,6 +142,7 @@ def run_evaluation(
     backends: list[str] | None = None,
     config: dict | None = None,
 ) -> dict[str, Any]:
+    """Evaluate selected backends and write per-backend JSON + a summary file."""
     cfg = config or load_config()
     path = resolve_path(
         filtered_path or cfg["output"]["filtered_captions"],
@@ -147,6 +159,7 @@ def run_evaluation(
     }
 
     for backend in selected:
+        # Each branch picks the scorer + output path from config.
         if backend == "clip":
             scorer: AffordanceScorer = CLIPScorer(cfg)
             result = _evaluate_backend("clip", scorer, records)

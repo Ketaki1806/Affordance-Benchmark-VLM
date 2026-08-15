@@ -1,7 +1,6 @@
-"""EmbeddingGemma cos(pos, neg) for caption pairs (no images).
-
-  PYTHONPATH=src python src/analyze_caption_yspace.py
-"""
+# EmbeddingGemma cos(pos, neg) for caption pairs (no images).
+# Done for: val_full/caption_analysis.json to compare captions and their alignment
+# PYTHONPATH=src python src/analyze_caption_yspace.py for reference
 
 from __future__ import annotations
 
@@ -29,7 +28,7 @@ def _load_objects(path: Path) -> list[dict[str, Any]]:
         raise ValueError(f"Expected objects list in {path}")
     return objects
 
-
+# Get the first caption from the tiers for the given key
 def _first_caption(tiers: dict[str, Any], key: str) -> str | None:
     vals = tiers.get(key) or []
     if not vals:
@@ -37,7 +36,7 @@ def _first_caption(tiers: dict[str, Any], key: str) -> str | None:
     text = str(vals[0]).strip()
     return text or None
 
-
+# Average the last hidden state of the model by the attention mask
 def _mean_pool(last_hidden: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
     mask = attention_mask.unsqueeze(-1).expand(last_hidden.size()).float()
     summed = torch.sum(last_hidden * mask, dim=1)
@@ -52,12 +51,14 @@ class YEncoderEmbedder:
         self.tokenizer = None
         self.model = None
 
+    # Load the pretrained Y encoder from HuggingFace
     def load(self) -> None:
         logger.info("Loading Y-encoder: %s on %s", self.model_name, self.device)
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         self.model = AutoModel.from_pretrained(self.model_name).to(self.device)
         self.model.eval()
 
+    # remove from memory due to out of memory errors
     def unload(self) -> None:
         self.model = None
         self.tokenizer = None
@@ -80,6 +81,7 @@ class YEncoderEmbedder:
         return F.normalize(pooled.float(), dim=-1).squeeze(0).cpu()
 
 
+# Load the clip.json file and return a dictionary of image_id to correct
 def _clip_correct_by_id(clip_path: Path | None) -> dict[str, bool]:
     if clip_path is None or not clip_path.is_file():
         return {}
@@ -93,6 +95,7 @@ def _clip_correct_by_id(clip_path: Path | None) -> dict[str, bool]:
     return out
 
 
+# Analyze the captions and return a dictionary of the analysis
 def analyze(
     captions_path: Path,
     out_path: Path,
@@ -103,10 +106,13 @@ def analyze(
     objects = _load_objects(captions_path)
     clip_map = _clip_correct_by_id(clip_path)
 
+    # Initialize the Y encoder embedder
     embedder = YEncoderEmbedder(model_name, device)
+    # Load the Y encoder model
     embedder.load()
     pairs_out: list[dict[str, Any]] = []
     try:
+        # Iterate over the objects and embed the captions
         for obj in objects:
             tiers = obj.get("affordance_tiers") or {}
             pos = _first_caption(tiers, "most_probable")
@@ -115,6 +121,7 @@ def analyze(
                 continue
             pos_emb = embedder.embed(pos)
             neg_emb = embedder.embed(neg)
+            # cross-product of the two embeddings
             cos = float((pos_emb @ neg_emb).item())
             image_id = str(obj.get("image_id", ""))
             row: dict[str, Any] = {

@@ -35,6 +35,8 @@ logger = get_logger(__name__)
 
 
 class AffordanceCaptionPipeline:
+    """End-to-end: manifest → Qwen pos/neg captions → raw.json + filtered.json."""
+
     def __init__(self, config: dict | None = None):
         self.config = config or load_config()
         self.prompt_builder = CaptionGenerationPrompt()
@@ -47,6 +49,7 @@ class AffordanceCaptionPipeline:
         return raw, filtered
 
     def _output_paths(self, shard_index: int | None) -> tuple[Path, Path]:
+        # Sharded Condor jobs write *.shard{K}.json next to the base paths.
         raw, filtered = self._base_output_paths()
         return shard_output_path(raw, shard_index), shard_output_path(filtered, shard_index)
 
@@ -70,6 +73,7 @@ class AffordanceCaptionPipeline:
                     raw_data,
                 )
                 if attempt < max_retries:
+                    # Nudge the model toward the expected schema on the next try.
                     prompt = (
                         prompt
                         + "\n\nReturn ONLY valid JSON with keys "
@@ -158,7 +162,7 @@ class AffordanceCaptionPipeline:
 
         existing = load_captions(raw_path) if resume else {"objects": []}
         done_ids = completed_image_ids(existing) if resume else set()
-        # Keep only complete pairs so retries do not duplicate image_ids
+        # Keep only complete pairs so retries do not duplicate image_ids.
         records: list[dict] = [
             obj
             for obj in existing.get("objects", [])
@@ -172,6 +176,7 @@ class AffordanceCaptionPipeline:
             pending = pending[: max(0, limit)]
 
         if not pending:
+            # Still sync filtered.json so eval always has a matching file.
             logger.info("Nothing to process; writing existing records to filtered path")
             output = {"objects": records}
             save_captions(output, raw_path)
@@ -194,6 +199,7 @@ class AffordanceCaptionPipeline:
                     len(tiers["most_probable"]),
                     len(tiers["negative"]),
                 )
+                # Incremental checkpoints for long Condor / local runs.
                 if save_every > 0 and (i % save_every == 0 or i == len(pending)):
                     output = {"objects": records}
                     save_captions(output, raw_path)
@@ -202,6 +208,7 @@ class AffordanceCaptionPipeline:
         finally:
             self.qwen.unload()
 
+        # raw.json and filtered.json are identical here (no CLIP adversarial filter).
         output = {"objects": records}
         save_captions(output, raw_path)
         save_captions(output, filtered_path)

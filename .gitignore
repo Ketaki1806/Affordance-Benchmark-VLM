@@ -5,6 +5,17 @@
 artifacts/
 vendor/
 
+# Local-only / do not submit
+.pytest_cache/
+.superpowers/
+papers/seminar/_proposal_imgs/
+*.flate
+_tmp_*
+humaneval/images/
+humaneval/raw.json
+scripts/build_seminar_report_docx.py
+scripts/recheck_report_analysis.py
+
 # Python
 __pycache__/
 *.pyc
@@ -13,8 +24,3 @@ __pycache__/
 
 # Jupyter
 .ipynb_checkpoints/
-humaneval/images
-
-docs/superpowers/plans/2026-08-02-occlusion-attribution.md
-docs/superpowers/specs/2026-08-02-occlusion-attribution-design.md
-docs/superpowers/specs/2026-08-04-embedding-modality-gap-design.md

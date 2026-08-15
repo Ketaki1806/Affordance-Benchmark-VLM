@@ -1,6 +1,6 @@
 # Project notes
 
-Working notes for the AVPR seminar project.  
+Working notes for the Affordance Benchmark project.  
 Last updated: 2026-08-01
 
 ### Report map
@@ -44,7 +44,7 @@ This project:
 
 **No exact twin.** Closest by *protocol*: SugarCrepe / ++, ARO, CREPE, VL-CheckList, Winoground, HNC (image + pos vs hard-neg caption; not affordance). Closest by *affordance/parts*: AGD20K / AffordanceCLIP (localization), PACO (parts/attributes — our image source), FG-OVD PACO attribute hard-neg captions (appearance swaps, not purpose polarity), IIT-AFF/UMD/PAD, HICO/HAKE.
 
-**Positioning sentence:** VL hard-neg suites test compositionality; affordance datasets test localization; PACO tests parts/attributes. This project combines PACO parts with affordance purpose hard negatives in a SugarCrepe-style binary ranking setup — not found as an existing large public benchmark (N=100 diagnostic for the seminar).
+**Positioning sentence:** VL hard-neg suites test compositionality; affordance datasets test localization; PACO tests parts/attributes. This project combines PACO parts with affordance purpose hard negatives in a SugarCrepe-style binary ranking setup — not found as an existing large public benchmark (N=100 diagnostic).
 
 ---
 
@@ -267,6 +267,29 @@ Pool ~1129 preferred-part images; subsample N=100 (`--seed 42`) for one-GPU runs
 
 FT on ~500 held-out Qwen pairs (ranking loss). High CLIP-FT may partly match caption style; see pilot FT below. SigLIP ≈ CLIP → dual-encoder family, not CLIP-only.
 
+### 4.3 FT scale-up train_1000 (same val N=100)
+
+Train captions: `artifacts/captions/train_1000/` (~1000 images). Eval: held-out `val_100_pairs`.
+
+| Metric | Value | Date |
+|--------|-------|------|
+| CLIP FT train_1000 | **0.91** (91/100) | 2026-08-10 |
+| Mean gap (CLIP FT 1k) | ~0.188 | 2026-08-10 |
+| Open-VLJEPA FT train_1000 | **0.64** (64/100) | 2026-08-11 |
+| Mean gap (VLJEPA FT 1k) | ~0.100 | 2026-08-11 |
+
+CLIP gains further (0.87→0.91); VLJEPA stays flat at 0.64 despite near-zero train loss — open-checkpoint ceiling, not more epochs/data of the same Qwen style.
+
+**FT fix-by-tag (ZS→train_500 FT, same val N=100):**  
+`py -3 scripts/plot_ft_improvement_by_tag.py` → `artifacts/figures/ft_improvement_by_tag.png`
+
+| Model | Attr fix | Spatial fix | Fluency fix |
+|-------|----------|-------------|-------------|
+| CLIP | 21/24 (88%) | 7/8 (88%) | 4/5 (80%) |
+| Open-VLJEPA | 8/38 (21%) | 3/5 (60%) | 1/3 (33%) |
+
+CLIP’s gain is broad across tags; VLJEPA’s +10 pts is a thin attribute slice — 30/38 attribute wrongs remain. Explains flat train_1000.
+
 ### 4.4 Y-space (EmbeddingGemma, N=100)
 
 Text-only cos(pos, neg) on same captions; join with frozen CLIP correct/wrong.
@@ -318,6 +341,7 @@ Pre-edit FT: CLIP 0.90 / VLJEPA 0.55. Cleaner hard negs hurt VLJEPA more.
 
 | Date | Update |
 |------|--------|
+| 2026-08-11 | train_1000 FT: CLIP 0.91 / VLJEPA 0.64 on val N=100; report FT scale chart |
 | 2026-08-01 | §8 Open-VLJEPA vs Meta VL-JEPA (arch close, scale far) |
 | 2026-08-01 | Error analysis §3: tag CLIP/SigLIP/VLJEPA wrongs + figure examples |
 | 2026-08-01 | SigLIP 0.60; Y-space mean cos 0.815; human FT after edits CLIP 0.90 / VLJEPA 0.45 |
@@ -424,12 +448,12 @@ Rough “closeness” summary:
 | Published retrieval strength | **Medium-low** | ~½ paper MSRVTT after Open’s domain FT |
 | Our affordance numbers | **Not transferable** | 0.54 ZS / 0.64 FT are Open’s, not Meta’s |
 
-### 8.3 What this means for the seminar report
+### 8.3 What this means for the report
 
 1. **Cite both:** Meta VL-JEPA for the idea; Open-VLJEPA for the runnable model we evaluate.
 2. **Do not claim** we measured Meta VL-JEPA on PACO affordance. Phrase as: *“Open-VLJEPA (architecture-matched open re-impl of Chen et al.; much smaller pretraining).”*
 3. **Interpretation of weak ZS (0.54):** partly expected under-scale — Meta’s model would likely be stronger on the same binary task, but that is a hypothesis, not a result we have.
-4. **FT (0.64) still modest vs CLIP-FT (0.87):** even adapting Open on ~500 affordance pairs does not close the dual-encoder gap on this task; that comparison is fair **among models we ran**, not vs Meta.
+4. **FT (0.64) still modest vs CLIP-FT (0.87→0.91):** even adapting Open on ~500–1000 affordance pairs does not close the dual-encoder gap on this task; that comparison is fair **among models we ran**, not vs Meta.
 5. **Y-space section** already uses EmbeddingGemma — same Y-init family as both VL-JEPA variants; useful bridge in related work.
 
 ### 8.4 Report sentence (copy-ready)
